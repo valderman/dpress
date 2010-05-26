@@ -1,9 +1,9 @@
-module DissociatedPress.Core {- (
-    Dictionary,
+module DissociatedPress.Core (
+    Dictionary (..),
     newDict, defDict, updateDict, setPreferredKeyLength,
     disPress, disPressBack, randomPress,
     randomKey, toKey, isKeyIn
-  ) -} where
+  ) where
 import qualified Data.Map as M
 import Data.List
 import System.Random
@@ -77,7 +77,7 @@ updateDict' words@(w:ws@(_:_)) d =
       case splitAt klen words of
         (k, w:_) -> M.alter (put w) k dict
         _        -> dict
-    put w (Just ws) = Just (if elem w ws then ws else w:ws)
+    put w (Just ws) = Just $ w:ws
     put w _         = Just [w]
 updateDict' _ dict        =
   dict

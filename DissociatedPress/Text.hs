@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-module DissociatedPress.Text {-(
+module DissociatedPress.Text (
     Word,
     randomSentence, ask, updateTextDict
-  )-} where
+  ) where
 import Data.Char (toLower)
 import System.Random
 import DissociatedPress.Core
