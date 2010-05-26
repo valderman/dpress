@@ -4,7 +4,7 @@ module DissociatedPress.Core {- (
     disPress, disPressBack, randomPress,
     randomKey, toKey, isKeyIn
   ) -} where
-import qualified Data.Map as M
+import qualified Trie as M
 import Data.List
 import System.Random
 
@@ -12,8 +12,8 @@ data Ord a => Dictionary a = Dictionary {
     maxKeyLen    :: Int,
     preferKeyLen :: Int,
     twoWay       :: Bool,
-    dict         :: M.Map [a] [a],
-    dict2        :: M.Map [a] [a]
+    dict         :: M.Trie a [a],
+    dict2        :: M.Trie a [a]
   }
 
 -- | Create a dictionary with default settings. This dictionary is optimized
@@ -64,9 +64,9 @@ newDict max prefer twoway = defDict {
 updateDict :: Ord a => [a] -> Dictionary a -> Dictionary a
 updateDict words d = d2 where
     d1 = if twoWay d
-            then updateDict' (reverse words) d
-            else d
-    d2 = updateDict' words d {dict2 = dict d1}
+            then updateDict' (reverse words) d{dict=dict2 d, dict2=dict d}
+            else d {dict = dict2 d, dict2 = dict d}
+    d2 = updateDict' words d {dict = dict2 d1, dict2 = dict d1}
 
 -- | Update only the forward dictionary using the given word list.
 updateDict' :: Ord a => [a] -> Dictionary a -> Dictionary a
@@ -85,10 +85,10 @@ updateDict' _ dict        =
 -- | Try to use the given key and random generator to derive a preferred length
 --   key for this dictionary.
 optKey :: Ord a
-       => (Dictionary a -> M.Map [a] [a]) -- ^ Use dict or dict2?
-       -> Dictionary a                    -- ^ Dictionary to work on
-       -> StdGen                          -- ^ Random generator
-       -> [a]                             -- ^ Key to optimize
+       => (Dictionary a -> M.Trie a [a]) -- ^ Use dict or dict2?
+       -> Dictionary a                   -- ^ Dictionary to work on
+       -> StdGen                         -- ^ Random generator
+       -> [a]                            -- ^ Key to optimize
        -> [a]
 optKey whatDict dic gen key
   | length key >= preferKeyLen dic = key
@@ -109,7 +109,7 @@ disPress = disPress' dict
 -- | Helper for disPress and disPressBack; generates text forward or backward
 --   depending on if the first parameter is dict or dict2.
 disPress' :: Ord a
-          => (Dictionary a -> M.Map [a] [a])
+          => (Dictionary a -> M.Trie a [a])
           -> [a]
           -> Dictionary a
           -> StdGen
@@ -132,7 +132,7 @@ disPress' _ _ _ _ = []
 randomKey :: Ord a => Dictionary a -> StdGen -> [a]
 randomKey dic gen = [key]
   where
-    (idx, gen')   = randomR (0, (M.size $ dict dic) - 1) gen
+    (idx, gen')   = randomR (0, 0 {-(M.size $ dict dic) - 1-}) gen
     (idx2, gen'') = randomR (0, length possible - 1) gen'
     possible      = (M.elems $ dict dic) !! idx
     key           = possible !! idx2
