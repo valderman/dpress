@@ -30,6 +30,19 @@ insert (k:ks) v t =
 insert [] v t =
   t {item = Just v}
 
+insertNGram :: Ord a => [a] -> Trie a [a] -> Trie a [a]
+insertNGram (k:ks) t =
+  t {item = Just v', children = M.alter f k (children t)}
+    where
+      v'          = case item t of
+        Just i | elem k i  -> i
+               | otherwise -> k:i
+        _                  -> [k]
+      f (Just t') = Just $ insertNGram ks t'
+      f _         = Just $ insertNGram ks $ Trie Nothing M.empty
+insertNGram _ t =
+  t
+
 lookup :: Ord k => [k] -> Trie k v -> Maybe v
 lookup (k:ks) t = do
   child <- M.lookup k (children t)
