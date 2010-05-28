@@ -1,7 +1,7 @@
 module DissociatedPress (
     Dictionary, Word,
     newDict, defDict, updateDict, setPreferredKeyLength,
-    disPress, disPressBack, randomPress,
+    disPress, disPressBack, -- randomPress,
     randomSentence, ask, updateTextDict,
     store, load
   ) where

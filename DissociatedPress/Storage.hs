@@ -2,14 +2,14 @@ module DissociatedPress.Storage (
     load, store
   ) where
 import DissociatedPress.Core
-import Trie
+import DissociatedPress.NGram
 import Data.Binary
 import Codec.Compression.Zlib
 import Data.ByteString.Lazy as B
 
-instance (Ord k, Binary k, Binary v) => Binary (Trie k v) where
-  put t = put (item t) >> put (children t)
-  get   = get >>= \itm -> get >>= \ch -> return $ Trie itm ch
+instance (Ord a, Binary a) => Binary (NGram a) where
+  put t = put $ children t
+  get   = get >>= return . NGram
 
 instance (Ord a, Binary a) => Binary (Dictionary a) where
   put = putD
