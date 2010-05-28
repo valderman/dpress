@@ -35,9 +35,8 @@ insertNGram (k:ks) t =
   t {item = Just v', children = M.alter f k (children t)}
     where
       v'          = case item t of
-        Just i | elem k i  -> i
-               | otherwise -> k:i
-        _                  -> [k]
+        Just i -> k:i
+        _      -> [k]
       f (Just t') = Just $ insertNGram ks t'
       f _         = Just $ insertNGram ks $ Trie Nothing M.empty
 insertNGram _ t =

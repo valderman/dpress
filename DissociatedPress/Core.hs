@@ -71,14 +71,9 @@ updateDict words d = d2 where
 -- | Update only the forward dictionary using the given word list.
 updateDict' :: Ord a => [a] -> Dictionary a -> Dictionary a
 updateDict' words@(w:ws@(_:_)) d =
-  updateDict' ws d {dict = (foldl insert (dict d) [1..maxKeyLen d])}
+  updateDict' ws d {dict = dict'}
   where
-    insert dict klen =
-      case splitAt klen words of
-        (k, w:_) -> T.alter (put w) k dict
-        _        -> dict
-    put w (Just ws) = Just $ w:ws
-    put w _         = Just [w]
+    dict' = T.insertNGram (take (maxKeyLen d+1) words) (dict d)
 updateDict' _ dict        =
   dict
 
