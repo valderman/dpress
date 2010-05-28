@@ -4,7 +4,7 @@ module DissociatedPress.Core (
     disPress, disPressBack, randomPress,
     randomKey, toKey, isKeyIn
   ) where
-import qualified Trie as M
+import qualified Trie as T
 import Data.List
 import System.Random
 
@@ -12,8 +12,8 @@ data Ord a => Dictionary a = Dictionary {
     maxKeyLen    :: Int,
     preferKeyLen :: Int,
     twoWay       :: Bool,
-    dict         :: M.Trie a [a],
-    dict2        :: M.Trie a [a]
+    dict         :: T.Trie a [a],
+    dict2        :: T.Trie a [a]
   }
 
 -- | Create a dictionary with default settings. This dictionary is optimized
@@ -24,8 +24,8 @@ defDict = Dictionary {
     maxKeyLen    = 3,
     preferKeyLen = 3,
     twoWay       = True,
-    dict         = M.empty,
-    dict2        = M.empty
+    dict         = T.empty,
+    dict2        = T.empty
   }
 
 -- | Sets the preferred key length of the given dictionary. The value is
@@ -75,7 +75,7 @@ updateDict' words@(w:ws@(_:_)) d =
   where
     insert dict klen =
       case splitAt klen words of
-        (k, w:_) -> M.alter (put w) k dict
+        (k, w:_) -> T.alter (put w) k dict
         _        -> dict
     put w (Just ws) = Just $ w:ws
     put w _         = Just [w]
@@ -85,7 +85,7 @@ updateDict' _ dict        =
 -- | Try to use the given key and random generator to derive a preferred length
 --   key for this dictionary.
 optKey :: Ord a
-       => (Dictionary a -> M.Trie a [a]) -- ^ Use dict or dict2?
+       => (Dictionary a -> T.Trie a [a]) -- ^ Use dict or dict2?
        -> Dictionary a                   -- ^ Dictionary to work on
        -> StdGen                         -- ^ Random generator
        -> [a]                            -- ^ Key to optimize
@@ -95,7 +95,7 @@ optKey whatDict dic gen key
   | otherwise                      = optKey whatDict dic gen' key'
     where
       key'        = key ++ [(possible !! idx)]
-      possible    = (whatDict dic) M.! key
+      possible    = (whatDict dic) T.! key
       (idx, gen') = randomR (0, length possible-1) gen
 
 -- | Generate text backward from the given key
@@ -109,7 +109,7 @@ disPress = disPress' dict
 -- | Helper for disPress and disPressBack; generates text forward or backward
 --   depending on if the first parameter is dict or dict2.
 disPress' :: Ord a
-          => (Dictionary a -> M.Trie a [a])
+          => (Dictionary a -> T.Trie a [a])
           -> [a]
           -> Dictionary a
           -> StdGen
@@ -122,7 +122,7 @@ disPress' whatDict key@(w:ws) d gen =
       disPress' whatDict ws d gen
   where
     word = do
-      possible <- M.lookup key (whatDict d)
+      possible <- T.lookup key (whatDict d)
       let (idx, gen') = randomR (0, length possible-1) gen
       return (possible !! idx, gen')
 disPress' _ _ _ _ = []
@@ -132,9 +132,9 @@ disPress' _ _ _ _ = []
 randomKey :: Ord a => Dictionary a -> StdGen -> [a]
 randomKey dic gen = [key]
   where
-    (idx, gen')   = randomR (0, 0 {-(M.size $ dict dic) - 1-}) gen
+    (idx, gen')   = randomR (0, 0 {-(T.size $ dict dic) - 1-}) gen
     (idx2, gen'') = randomR (0, length possible - 1) gen'
-    possible      = (M.elems $ dict dic) !! idx
+    possible      = (T.elems $ dict dic) !! idx
     key           = possible !! idx2
 
 -- | Takes a (possibly) too long key and returns the longest subset of the key
@@ -160,7 +160,7 @@ toKey s d rev =
 -- | Returns true if the given key is valid for the given dictionary; that is,
 --   if it points to something.
 isKeyIn :: Ord a => [a] -> Dictionary a -> Bool
-k `isKeyIn` d = M.lookup k (dict d) /= Nothing
+k `isKeyIn` d = T.lookup k (dict d) /= Nothing
 
 -- | Generates text using a randomly selected key
 randomPress :: Ord a => Dictionary a -> StdGen -> [a]
