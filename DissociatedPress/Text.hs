@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module DissociatedPress.Text (
     Word,
-    randomSentence, ask, updateTextDict
+    randomSentence, ask, updateTextDict, words', unwords'
   ) where
 import Data.Char (toLower)
 import System.Random
 import DissociatedPress.Core
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy.Char8 as B
 
 type Word = B.ByteString
 
@@ -90,7 +90,7 @@ ask key dict g =
     backward = takeWhile (not . flip B.elem ".!?" . B.head)
                  $ disPressBack key' dict g
     takeUntil pred words =
-      let (a, b) = span (not . pred) words in a ++ [head b]
+      let (a, b) = span (not . pred) words in a ++ take 1 b
 
 updateTextDict :: FilePath -> Dictionary Word -> IO (Dictionary Word)
 updateTextDict seed oldAssocs = do
