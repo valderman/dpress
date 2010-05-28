@@ -3,6 +3,7 @@ module DissociatedPress.Storage (
   ) where
 import DissociatedPress.Core
 import Data.Binary
+import Codec.Compression.Zlib
 import Data.ByteString.Lazy as B
 
 instance (Ord a, Binary a) => Binary (Dictionary a) where
@@ -34,8 +35,9 @@ getD = do
 
 store :: (Ord a, Binary a) => FilePath -> Dictionary a -> IO ()
 store fp d =
-  B.writeFile fp $ encode d
+  B.writeFile fp $ compress $ encode d
 
-load :: (Ord a, Binary a) => FilePath -> IO (Dictionary a)
+load :: (Ord a, Binary a) => FilePath -> IO (Maybe (Dictionary a))
 load fp =
-  B.readFile fp >>= return . decode
+  catch (B.readFile fp >>= return . Just . decode . decompress)
+        (\_ -> return Nothing)
