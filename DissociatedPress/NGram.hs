@@ -60,13 +60,12 @@ lookup [] (NGram t) =
 --   children of that key. For example, delete "abc" $ insert "abcde" will
 --   leave you with an empty trie.
 delete :: Ord a => [a] -> NGram a -> NGram a
-delete (k:ks) t =
+delete (k:ks@(_:_)) t =
   t {children = M.alter f k (children t)}
     where
-      f (Just t') = let t'' = delete ks t' in
-                        if (M.size $ children t'') == 0
-                           then Nothing
-                           else Just t''
+      f (Just t') = Just $ delete ks t'
       f _         = Nothing
-delete [] t =
+delete [_] t =
+  DissociatedPress.NGram.empty
+delete [] t  =
   DissociatedPress.NGram.empty
