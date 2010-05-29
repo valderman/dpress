@@ -1,12 +1,15 @@
 DPRESS_HSFILES=DissociatedPress/Text/ByteString.hs DissociatedPress/Text/String.hs DissociatedPress/Core.hs DissociatedPress/NGram.hs DissociatedPress/Storage.hs DissociatedPress.hs
 
-all: compile test
+all: compile test server
 
 compile: compile.hs $(DPRESS_HSFILES)
 	ghc -O2 --make compile.hs
 
 test: test.hs $(DPRESS_HSFILES)
 	ghc -O2 --make test.hs
+
+server: server.hs $(DPRESS_HSFILES)
+	ghc -O2 --make server.hs
 
 clean:
 	find . -name '*.hi' -exec rm \{\} \;
