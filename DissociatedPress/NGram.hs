@@ -1,6 +1,7 @@
 module DissociatedPress.NGram (
     NGram (..),
-    empty, insert, DissociatedPress.NGram.lookup, delete, (!)
+    empty, insert, DissociatedPress.NGram.lookup, delete, (!), elems,
+    fold, merge
   ) where
 import qualified Data.Map as M
 import Data.Maybe
@@ -14,6 +15,20 @@ empty = NGram {children = M.empty}
 
 (!) :: Ord a => NGram a -> [a] -> [a]
 t ! k = fromJust $ DissociatedPress.NGram.lookup k t
+
+fold :: Ord b => (a -> [b] -> a) -> a -> NGram b -> a
+fold f acc ngram = foldl f acc (elems ngram)
+
+merge :: Ord a => NGram a -> NGram a -> NGram a
+merge a b = fold (flip insert) b a
+
+elems :: Ord a => NGram a -> [[a]]
+elems (NGram t) = M.foldWithKey extract [] t
+  where
+    extract k v acc =
+      case elems v of
+        [] -> [k]:acc
+        ev ->  (map (k:) ev) ++ acc
 
 insert :: Ord a => [a] -> NGram a -> NGram a
 insert (k:ks) t =

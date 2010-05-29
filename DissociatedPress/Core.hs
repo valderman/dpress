@@ -2,7 +2,7 @@ module DissociatedPress.Core (
     Dictionary (..),
     newDict, defDict, updateDict, setPreferredKeyLength,
     disPress, disPressBack, {-randomPress,
-    randomKey,-} toKey, isKeyIn, optKey
+    randomKey,-} toKey, isKeyIn, optKey, merge
   ) where
 import qualified DissociatedPress.NGram as N
 import Data.List
@@ -59,6 +59,31 @@ newDict max prefer twoway = defDict {
     preferKeyLen = prefer,
     twoWay       = twoway
   }
+
+-- | Merges two dictionaries. The resulting dictionaries will use lowest
+--   common denominator settings; lowest max and preferred key lengths, only
+--   use forward dictionary unless both dictionaries are two way.
+--   It is worth noting that the first dictionary will be merged into the
+--   second one. Thus, if you have a small dictionary a and a large dictionary
+--   b that you wish to merge, doing merge a b would be faster than doing
+--   merge b a.
+merge :: Ord a => Dictionary a -> Dictionary a -> Dictionary a
+merge a b =
+  Dictionary {
+      maxKeyLen    = kLen,
+      preferKeyLen = kPref,
+      twoWay       = tWay,
+      dict         = d1,
+      dict2        = d2
+    }
+  where
+    kLen  = min (maxKeyLen a) (maxKeyLen b)
+    kPref = min (preferKeyLen a) (preferKeyLen b)
+    tWay  = twoWay a && twoWay b
+    d1    = N.merge (dict a) (dict b)
+    d2    = if tWay
+               then N.merge (dict2 a) (dict2 b)
+               else N.empty
 
 -- | Update a dictionary with the associations from the given list of words.
 updateDict :: Ord a => [a] -> Dictionary a -> Dictionary a
