@@ -1,3 +1,4 @@
+-- | Trie-like data structure, specialized for storing n-grams.
 module DissociatedPress.NGram (
     NGram (..),
     empty, insert, DissociatedPress.NGram.lookup, delete, (!), elems,
@@ -10,18 +11,23 @@ data NGram a = NGram {
     children :: M.Map a (NGram a)
   } deriving Show
 
+-- | An empty n-gram trie
 empty :: NGram a
 empty = NGram {children = M.empty}
 
+-- | Returns the set of keys following the given key.
 (!) :: Ord a => NGram a -> [a] -> [a]
 t ! k = fromJust $ DissociatedPress.NGram.lookup k t
 
+-- | Standard fold over all n-grams in the trie.
 fold :: Ord b => (a -> [b] -> a) -> a -> NGram b -> a
 fold f acc ngram = foldl f acc (elems ngram)
 
+-- | Merge two n-gram tries together.
 merge :: Ord a => NGram a -> NGram a -> NGram a
 merge a b = fold (flip insert) b a
 
+-- | Return a list of all n-grams in the trie.
 elems :: Ord a => NGram a -> [[a]]
 elems (NGram t) = M.foldWithKey extract [] t
   where
@@ -30,6 +36,7 @@ elems (NGram t) = M.foldWithKey extract [] t
         [] -> [k]:acc
         ev ->  (map (k:) ev) ++ acc
 
+-- | Insert a new n-gram into the trie.
 insert :: Ord a => [a] -> NGram a -> NGram a
 insert (k:ks) t =
   t {children = M.alter f k (children t)}
@@ -39,6 +46,7 @@ insert (k:ks) t =
 insert _ t =
   t
 
+-- | Return all keys following the given key in the trie.
 lookup :: Ord a => [a] -> NGram a -> Maybe [a]
 lookup (k:ks) t = do
   child <- M.lookup k (children t)
@@ -48,6 +56,9 @@ lookup [] (NGram t) =
      then Nothing
      else Just $ M.keys t
 
+-- | Delete a key from the trie. Note that deleting a key will also remove all
+--   children of that key. For example, delete "abc" $ insert "abcde" will
+--   leave you with an empty trie.
 delete :: Ord a => [a] -> NGram a -> NGram a
 delete (k:ks) t =
   t {children = M.alter f k (children t)}
