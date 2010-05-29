@@ -15,9 +15,16 @@ main = do
   args <- getArgs
   hPutStrLn stderr $  "Usage: input text on stdin, writes dictionary to "
                    ++ "stdout.\n-p n or -pn sets preferred key length to n.\n"
-                   ++ "-k n or -kn sets max key length to n.\n"
-                   ++ "Defaults are -k3 -p2.\n"
+                   ++ "-k n or -kn sets max key length to n."
   let dict = readOpts args (defDict :: Dictionary DTB.Word)
+  hPutStrLn stderr $  "Compiling using -k" ++ show (maxKeyLen dict)
+                   ++ " -p" ++ show (preferKeyLen dict) ++ "."
+                   ++ if maxKeyLen dict == maxKeyLen
+                                           (defDict :: Dictionary DTB.Word)
+                         && preferKeyLen dict == preferKeyLen
+                                           (defDict :: Dictionary DTB.Word)
+                         then " (defaults)"
+                         else ""
   B.interact $ compress . encode . flip updateDict dict . words'
                         . BU.fromString . map toLower . BU.toString
   where
