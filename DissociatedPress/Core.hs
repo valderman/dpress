@@ -2,7 +2,7 @@ module DissociatedPress.Core (
     Dictionary (..),
     newDict, defDict, updateDict, setPreferredKeyLength,
     disPress, disPressBack, {-randomPress,
-    randomKey,-} toKey, isKeyIn
+    randomKey,-} toKey, isKeyIn, optKey
   ) where
 import qualified DissociatedPress.NGram as N
 import Data.List
@@ -22,7 +22,7 @@ data Ord a => Dictionary a = Dictionary {
 defDict :: Ord a => Dictionary a
 defDict = Dictionary {
     maxKeyLen    = 3,
-    preferKeyLen = 3,
+    preferKeyLen = 2,
     twoWay       = True,
     dict         = N.empty,
     dict2        = N.empty

@@ -1,4 +1,7 @@
-module DissociatedPress.NGram where
+module DissociatedPress.NGram (
+    NGram (..),
+    empty, insert, DissociatedPress.NGram.lookup, delete, (!)
+  ) where
 import qualified Data.Map as M
 import Data.Maybe
 
