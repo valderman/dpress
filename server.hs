@@ -11,7 +11,9 @@ import Data.ByteString.Lazy.Char8 (pack, unpack)
 
 defPort = 1917
 version = "0.01"
-initString = "dpress " ++ version
+protocolVersion = 1
+initString =  "dpress " ++ version
+           ++ "\n" ++ "protocol: " ++ show protocolVersion
 keyLengths d =  "maxKeyLen: " ++ show (maxKeyLen d) ++ "\n"
              ++ "preferKeyLen: " ++ show (preferKeyLen d)
 readyString = "> "
