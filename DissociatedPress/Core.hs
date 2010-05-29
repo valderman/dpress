@@ -22,7 +22,7 @@ data Ord a => Dictionary a = Dictionary {
 defDict :: Ord a => Dictionary a
 defDict = Dictionary {
     maxKeyLen    = 3,
-    preferKeyLen = 2,
+    preferKeyLen = 3,
     twoWay       = True,
     dict         = N.empty,
     dict2        = N.empty

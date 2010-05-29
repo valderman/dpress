@@ -91,23 +91,17 @@ ask key dic g =
     -- generator do its magic.
     key'     = toKey nopunctuation dic revOrNot
     
-    -- we want to create an optimized key and use both forward and backward,
-    -- for consistency.
-    finalKey = case randomR (True, False) g of
-      (True, g') -> optKey dict dic g' key'
-      (_, g')    -> reverse $ optKey dict2 dic g' (reverse key')
-    
     -- generate forward from key
     forward  = takeUntil (flip B.elem ".!?" . B.head)
-                 $ disPress finalKey dic g
+                 $ disPress key' dic g
     
     -- generate backward from key
     backward = takeWhile (not . flip B.elem ".!?" . B.head)
-                 $ disPressBack finalKey dic g
+                 $ disPressBack key' dic g
     
     -- generate forward and backward, concatenate and then make string
-    sentence = unwords' $  reverse (drop (length finalKey) backward)
-                        ++ forward
+    sentence = unwords' $  reverse (drop (length key') backward)
+                        ++ key' ++ (drop (length key') forward)
 
 -- | Updates a dictionary from a file; all words are lowercased.
 updateDictFromFile :: FilePath -> Dictionary Word -> IO (Dictionary Word)
