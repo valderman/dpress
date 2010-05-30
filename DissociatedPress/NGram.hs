@@ -13,7 +13,7 @@ import GHC.Int
 data NGram a = NGram {
     weight   :: Int#,
     children :: M.Map a (NGram a)
-  }
+  } deriving Show
 
 -- | An empty n-gram trie
 empty :: NGram a

@@ -70,8 +70,7 @@ randomSentence dic gen = ask (unwords' $ randomKey dic gen) dic gen
 -- | Generate a sentence forward and backward from the given key.
 ask :: B.ByteString -> Dictionary Word -> StdGen -> B.ByteString
 ask key dic g =
-  if sentence == key then randomSentence dic g
-                     else sentence
+  sentence
   where
     takeUntil pred words =
       let (a, b) = span (not . pred) words in a ++ take 1 b

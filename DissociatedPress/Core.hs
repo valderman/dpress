@@ -6,6 +6,7 @@ module DissociatedPress.Core (
   ) where
 import qualified DissociatedPress.NGram as N
 import Data.List
+import Data.Maybe (fromJust)
 import System.Random
 
 data Ord a => Dictionary a = Dictionary {
@@ -14,7 +15,7 @@ data Ord a => Dictionary a = Dictionary {
     twoWay       :: Bool,
     dict         :: N.NGram a,
     dict2        :: N.NGram a
-  }
+  } deriving Show
 
 -- | Create a dictionary with default settings. This dictionary is optimized
 --   for producing nice text with short keylengths. See 'newDict' for the
@@ -95,7 +96,7 @@ updateDict words d = d2 where
 
 -- | Update only the forward dictionary using the given word list.
 updateDict' :: Ord a => [a] -> Dictionary a -> Dictionary a
-updateDict' words@(w:ws@(_:_)) d =
+updateDict' words@(w:ws) d =
   updateDict' ws d {dict = dict'}
   where
     dict' = N.insert (take (maxKeyLen d+1) words) (dict d)
@@ -111,11 +112,16 @@ optKey :: Ord a
        -> [a]                            -- ^ Key to optimize
        -> [a]
 optKey whatDict dic gen key
-  | length key >= preferKeyLen dic = key
-  | otherwise                      = optKey whatDict dic gen' key'
+  | length key >= preferKeyLen dic =
+    key
+  | otherwise                      =
+    case mPossible of
+      Nothing -> key
+      _       -> optKey whatDict dic gen' key'
     where
-      key'        = key ++ [fst $ pickOne possible gen]
-      possible    = (whatDict dic) N.! key
+      key'        = key ++ [fst $ pickOne (possible) gen]
+      possible    = fromJust mPossible
+      mPossible   = N.lookup key (whatDict dic)
       (idx, gen') = randomR (0, length possible-1) gen
 
 -- | Generate text backward from the given key
@@ -139,12 +145,12 @@ disPress' whatDict key@(w:ws) d gen =
     Just (word', gen') ->
       w : disPress' whatDict (optKey whatDict d gen $ ws++[word']) d gen'
     _         ->
-      disPress' whatDict ws d gen
+      w : disPress' whatDict ws d gen
   where
     word = do
       possible <- N.lookup key (whatDict d)
       return $ pickOne possible gen
-disPress' _ _ _ _ = []
+disPress' _ k _ _ = k
 
 pickOne :: Ord a => [(a, Int)] -> StdGen -> (a, StdGen)
 pickOne items g = (pick items num, g')
@@ -187,7 +193,9 @@ toKey s d rev =
 -- | Returns true if the given key is valid for the given dictionary; that is,
 --   if it points to something.
 isKeyIn :: Ord a => [a] -> Dictionary a -> Bool
-k `isKeyIn` d = N.lookup k (dict d) /= Nothing
+k `isKeyIn` d = case N.lookup k (dict d) of 
+  Nothing -> N.lookup k (dict2 d) /= Nothing
+  _       -> True
 
 -- | Generates text using a randomly selected key
 -- randomPress :: Ord a => Dictionary a -> StdGen -> [a]
