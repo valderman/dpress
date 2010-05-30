@@ -8,12 +8,13 @@ import qualified Data.Map as M
 import Data.Maybe
 
 data NGram a = NGram {
+    weight   :: Int,
     children :: M.Map a (NGram a)
   } deriving Show
 
 -- | An empty n-gram trie
 empty :: NGram a
-empty = NGram {children = M.empty}
+empty = NGram {weight = 0, children = M.empty}
 
 -- | Returns the set of keys following the given key.
 (!) :: Ord a => NGram a -> [a] -> [a]
@@ -29,7 +30,7 @@ merge a b = fold (flip insert) b a
 
 -- | Return a list of all n-grams in the trie.
 elems :: Ord a => NGram a -> [[a]]
-elems (NGram t) = M.foldWithKey extract [] t
+elems (NGram _ t) = M.foldWithKey extract [] t
   where
     extract k v acc =
       case elems v of
@@ -39,19 +40,19 @@ elems (NGram t) = M.foldWithKey extract [] t
 -- | Insert a new n-gram into the trie.
 insert :: Ord a => [a] -> NGram a -> NGram a
 insert (k:ks) t =
-  t {children = M.alter f k (children t)}
+  t {weight = weight t + 1, children = M.alter f k (children t)}
     where
       f (Just t') = Just $ insert ks t'
-      f _         = Just $ insert ks $ NGram M.empty
+      f _         = Just $ insert ks empty
 insert _ t =
-  t
+  t {weight = weight t + 1}
 
 -- | Return all keys following the given key in the trie.
 lookup :: Ord a => [a] -> NGram a -> Maybe [a]
 lookup (k:ks) t = do
   child <- M.lookup k (children t)
   DissociatedPress.NGram.lookup ks child
-lookup [] (NGram t) =
+lookup [] (NGram _ t) =
   if null $ M.keys t
      then Nothing
      else Just $ M.keys t
