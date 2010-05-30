@@ -21,6 +21,7 @@ readyString = "> "
 main = withSocketsDo $ do
   -- read dicts
   dicts <- getArgs
+  hPutStrLn stderr $ "Loading dictionaries: " ++ unwords (map show dicts)
   dict <- case dicts of
     [] -> error "You must specify at least one (binary) dictionary!"
     _  -> foldM (\a x -> load x >>= return . flip merge a . fromJust)
@@ -29,6 +30,7 @@ main = withSocketsDo $ do
 
   -- setup network
   let myPort = defPort
+  hPutStrLn stderr $ "Now listening on port " ++ show myPort
   listener <- listenOn $ PortNumber myPort
 
   -- accept connections
