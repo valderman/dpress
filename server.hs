@@ -53,4 +53,6 @@ handleClient h dv = flip catch (\e -> return ()) $ do
      put readyString
      q <- getLn >>= return . pack
      newStdGen >>= putLn . unpack . ask q d
-     converse d
+     let d' = insertText q d
+     swapMVar dv d
+     converse d'
