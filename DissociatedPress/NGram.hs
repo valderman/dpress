@@ -17,25 +17,27 @@ empty :: NGram a
 empty = NGram {weight = 0, children = M.empty}
 
 -- | Returns the set of keys following the given key.
-(!) :: Ord a => NGram a -> [a] -> [a]
+(!) :: Ord a => NGram a -> [a] -> [(a, Int)]
 t ! k = fromJust $ DissociatedPress.NGram.lookup k t
 
 -- | Standard fold over all n-grams in the trie.
-fold :: Ord b => (a -> [b] -> a) -> a -> NGram b -> a
+fold :: Ord b => (a -> [(b, Int)] -> a) -> a -> NGram b -> a
 fold f acc ngram = foldl f acc (elems ngram)
 
 -- | Merge two n-gram tries together.
 merge :: Ord a => NGram a -> NGram a -> NGram a
-merge a b = fold (flip insert) b a
+merge a b = fold ins b a
+  where
+    ins t k = insert (map fst k) t
 
 -- | Return a list of all n-grams in the trie.
-elems :: Ord a => NGram a -> [[a]]
-elems (NGram _ t) = M.foldWithKey extract [] t
+elems :: Ord a => NGram a -> [[(a, Int)]]
+elems (NGram w t) = M.foldWithKey extract [] t
   where
     extract k v acc =
       case elems v of
-        [] -> [k]:acc
-        ev ->  (map (k:) ev) ++ acc
+        [] -> [(k, w)]:acc
+        ev ->  (map ((k, w):) ev) ++ acc
 
 -- | Insert a new n-gram into the trie.
 insert :: Ord a => [a] -> NGram a -> NGram a
@@ -48,14 +50,14 @@ insert _ t =
   t {weight = weight t + 1}
 
 -- | Return all keys following the given key in the trie.
-lookup :: Ord a => [a] -> NGram a -> Maybe [a]
+lookup :: Ord a => [a] -> NGram a -> Maybe [(a, Int)]
 lookup (k:ks) t = do
   child <- M.lookup k (children t)
   DissociatedPress.NGram.lookup ks child
 lookup [] (NGram _ t) =
   if null $ M.keys t
      then Nothing
-     else Just $ M.keys t
+     else Just $ map (\(k, NGram w _) -> (k, w)) $ M.toList t
 
 -- | Delete a key from the trie. Note that deleting a key will also remove all
 --   children of that key. For example, delete "abc" $ insert "abcde" will

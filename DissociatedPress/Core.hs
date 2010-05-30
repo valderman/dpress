@@ -114,7 +114,7 @@ optKey whatDict dic gen key
   | length key >= preferKeyLen dic = key
   | otherwise                      = optKey whatDict dic gen' key'
     where
-      key'        = key ++ [(possible !! idx)]
+      key'        = key ++ [fst $ pickOne possible gen]
       possible    = (whatDict dic) N.! key
       (idx, gen') = randomR (0, length possible-1) gen
 
@@ -136,16 +136,23 @@ disPress' :: Ord a
           -> [a]
 disPress' whatDict key@(w:ws) d gen =
   case word of
-    Just (word, gen') ->
-      w : disPress' whatDict (optKey whatDict d gen $ ws ++ [word]) d gen'
+    Just (word', gen') ->
+      w : disPress' whatDict (optKey whatDict d gen $ ws++[word']) d gen'
     _         ->
       disPress' whatDict ws d gen
   where
     word = do
       possible <- N.lookup key (whatDict d)
-      let (idx, gen') = randomR (0, length possible-1) gen
-      return (possible !! idx, gen')
+      return $ pickOne possible gen
 disPress' _ _ _ _ = []
+
+pickOne :: Ord a => [(a, Int)] -> StdGen -> (a, StdGen)
+pickOne items g = (pick items num, g')
+  where
+    pick ((x, w):xs) n | n <= w    = x
+                       | otherwise = pick xs (n-w)
+    total     = sum $ map snd items
+    (num, g') = randomR (1, total) g
 
 -- | Randomly chooses a key for the map. The key uses only a single word,
 --   so that it can be used properly for both forward and backward generation.
