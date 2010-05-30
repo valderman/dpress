@@ -23,9 +23,9 @@ main = withSocketsDo $ do
   dicts <- getArgs
   hPutStrLn stderr $ "Loading dictionaries: " ++ unwords (map show dicts)
   dict <- case dicts of
-    [] -> error "You must specify at least one (binary) dictionary!"
-    _  -> foldM (\a x -> load x >>= return . flip merge a . fromJust)
-                (defDict :: Dictionary Word) dicts
+    []     -> error "You must specify at least one (binary) dictionary!"
+    (d:ds) -> load d >>= return . fromJust >>= \d' ->
+      foldM (\a x -> load x >>= return . flip merge a . fromJust) d' ds
   dv <- newMVar dict
 
   -- setup network
