@@ -1,3 +1,4 @@
+{-# LANGUAGE MagicHash #-}
 module DissociatedPress.Storage (
     load, store
   ) where
@@ -6,10 +7,11 @@ import DissociatedPress.NGram
 import Data.Binary
 import Codec.Compression.Zlib
 import Data.ByteString.Lazy as B
+import GHC.Int
 
 instance (Ord a, Binary a) => Binary (NGram a) where
-  put t = put (weight t) >> put (children t)
-  get   = get >>= \o -> get >>= \c -> return $! (NGram $! o) $! c
+  put (NGram w c) = (put $ I32# w) >> put c
+  get   = get >>= \(I32# w) -> get >>= \c -> return $! NGram w $! c
 
 instance (Ord a, Binary a) => Binary (Dictionary a) where
   put = putD

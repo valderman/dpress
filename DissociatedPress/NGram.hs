@@ -1,4 +1,5 @@
 -- | Trie-like data structure, specialized for storing n-grams.
+{-# LANGUAGE MagicHash #-}
 module DissociatedPress.NGram (
     NGram (..),
     empty, insert, DissociatedPress.NGram.lookup, delete, (!), elems,
@@ -6,15 +7,17 @@ module DissociatedPress.NGram (
   ) where
 import qualified Data.Map as M
 import Data.Maybe
+import GHC.Prim
+import GHC.Int
 
 data NGram a = NGram {
-    weight   :: Int,
+    weight   :: Int#,
     children :: M.Map a (NGram a)
-  } deriving Show
+  }
 
 -- | An empty n-gram trie
 empty :: NGram a
-empty = NGram {weight = 0, children = M.empty}
+empty = NGram {weight = 0#, children = M.empty}
 
 -- | Returns the set of keys following the given key.
 (!) :: Ord a => NGram a -> [a] -> [(a, Int)]
@@ -36,19 +39,19 @@ elems (NGram w t) = M.foldWithKey extract [] t
   where
     extract k v acc =
       case elems v of
-        [] -> [(k, w)]:acc
-        ev ->  (map ((k, w):) ev) ++ acc
+        [] -> [(k, fromIntegral $ I32# w)]:acc
+        ev ->  (map ((k, fromIntegral $ I32# w):) ev) ++ acc
 
 -- | Insert a new n-gram into the trie.
 insert :: Ord a => [a] -> NGram a -> NGram a
 insert (k:ks) t =
-  t {weight = (+1) $! weight t,
+  t {weight = weight t +# 1#,
      children = let x = M.alter f k (children t) in x `seq` x}
     where
       f (Just t') = Just $! insert ks $! t'
       f _         = Just $! insert ks $! empty
 insert _ t =
-  t {weight = (+1) $! weight t}
+  t {weight = weight t +# 1#}
 
 -- | Return all keys following the given key in the trie.
 lookup :: Ord a => [a] -> NGram a -> Maybe [(a, Int)]
@@ -58,7 +61,8 @@ lookup (k:ks) t = do
 lookup [] (NGram _ t) =
   if null $ M.keys t
      then Nothing
-     else Just $ map (\(k, NGram w _) -> (k, w)) $ M.toList t
+     else Just $ map (\(k, NGram w _) -> (k, fromIntegral $ I32# w))
+               $ M.toList t
 
 -- | Delete a key from the trie. Note that deleting a key will also remove all
 --   children of that key. For example, delete "abc" $ insert "abcde" will
