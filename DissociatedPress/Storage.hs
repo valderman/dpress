@@ -9,7 +9,7 @@ import Data.ByteString.Lazy as B
 
 instance (Ord a, Binary a) => Binary (NGram a) where
   put t = put (weight t) >> put (children t)
-  get   = get >>= \o -> get >>= return . NGram o
+  get   = get >>= \o -> get >>= \c -> return $! (NGram $! o) $! c
 
 instance (Ord a, Binary a) => Binary (Dictionary a) where
   put = putD
@@ -30,12 +30,12 @@ getD = do
   tw <- get
   d1 <- get
   d2 <- get
-  return $ Dictionary {
-      maxKeyLen = maxLen,
+  return $! Dictionary {
+      maxKeyLen    = maxLen,
       preferKeyLen = preferLen,
-      twoWay = tw,
-      dict = d1,
-      dict2 = d2
+      twoWay       = tw,
+      dict         = d1,
+      dict2        = d2
     }
 
 store :: (Ord a, Binary a) => FilePath -> Dictionary a -> IO ()

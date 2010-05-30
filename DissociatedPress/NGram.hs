@@ -26,9 +26,9 @@ fold f acc ngram = foldl f acc (elems ngram)
 
 -- | Merge two n-gram tries together.
 merge :: Ord a => NGram a -> NGram a -> NGram a
-merge a b = fold ins b a
+merge a b = let x = fold ins b a in x `seq` x
   where
-    ins t k = insert (map fst k) t
+    ins t k = let x = insert (map fst k) t in x `seq` x
 
 -- | Return a list of all n-grams in the trie.
 elems :: Ord a => NGram a -> [[(a, Int)]]
@@ -42,12 +42,13 @@ elems (NGram w t) = M.foldWithKey extract [] t
 -- | Insert a new n-gram into the trie.
 insert :: Ord a => [a] -> NGram a -> NGram a
 insert (k:ks) t =
-  t {weight = weight t + 1, children = M.alter f k (children t)}
+  t {weight = (+1) $! weight t,
+     children = let x = M.alter f k (children t) in x `seq` x}
     where
-      f (Just t') = Just $ insert ks t'
-      f _         = Just $ insert ks empty
+      f (Just t') = Just $! insert ks $! t'
+      f _         = Just $! insert ks $! empty
 insert _ t =
-  t {weight = weight t + 1}
+  t {weight = (+1) $! weight t}
 
 -- | Return all keys following the given key in the trie.
 lookup :: Ord a => [a] -> NGram a -> Maybe [(a, Int)]
@@ -64,9 +65,9 @@ lookup [] (NGram _ t) =
 --   leave you with an empty trie.
 delete :: Ord a => [a] -> NGram a -> NGram a
 delete (k:ks@(_:_)) t =
-  t {children = M.alter f k (children t)}
+  t {children = let x = M.alter f k (children t) in x `seq` x}
     where
-      f (Just t') = Just $ delete ks t'
+      f (Just t') = Just $! delete ks t'
       f _         = Nothing
 delete [_] t =
   DissociatedPress.NGram.empty
