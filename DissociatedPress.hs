@@ -1,10 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
 module DissociatedPress (
     Dictionary, Word,
-    newDict, defDict, updateDict, setPreferredKeyLength,
-    disPress, disPressBack, randomPress,
-    randomSentence, ask, updateTextDict,
+    maxKeyLen, preferKeyLen, setPreferredKeyLength,
+    newDict, defDict, updateDict, toKey, optKey, merge,
+    disPress, disPressBack, -- randomPress,
+    randomSentence, ask, insertText,
     store, load
   ) where
 import DissociatedPress.Core
 import DissociatedPress.Storage
-import DissociatedPress.Text
+import DissociatedPress.Text.ByteString

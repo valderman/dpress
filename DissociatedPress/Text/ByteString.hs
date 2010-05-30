@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
-module DissociatedPress.Text (
+module DissociatedPress.Text.ByteString (
     Word,
-    randomSentence, ask, updateTextDict, words', unwords'
+    randomSentence, ask, updateDictFromFile, words', unwords', insertText
   ) where
 import Data.Char (toLower)
 import System.Random
 import DissociatedPress.Core
 import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.ByteString.Lazy.UTF8 as BU
 
 type Word = B.ByteString
 
@@ -15,7 +16,7 @@ whitespace, punctuation, ignore, nonword :: B.ByteString
 whitespace  = " \n\t"
 punctuation = ",.!?:;+-*/&="
 ignore      = "\r()\""
-nonword     = B.concat [whitespace,  punctuation]
+nonword     = B.concat [whitespace, punctuation]
 
 newtype WordsState = WS Int deriving Eq
 
@@ -64,35 +65,51 @@ unwords' = B.concat . unwords'' where
 -- | Generates a completely random sentence
 randomSentence :: Dictionary Word -> StdGen -> B.ByteString
 randomSentence dic gen = ask (unwords' $ randomKey dic gen) dic gen
+  where randomKey _ _ = []
 
 -- | Generate a sentence forward and backward from the given key.
 ask :: B.ByteString -> Dictionary Word -> StdGen -> B.ByteString
-ask key dict g =
-  if sentence == key then randomSentence dict g
+ask key dic g =
+  if sentence == key then randomSentence dic g
                      else sentence
   where
-    -- generate forward and backward, concatenate and then make string
-    sentence = unwords' $ reverse (drop (length key') backward)
-                 ++ key' ++ (drop (length key') forward)
-    -- to generate the actual key, word split the given key then let the key
-    -- generator do its magic.
-    key'     = toKey nopunctuation dict revOrNot
+    takeUntil pred words =
+      let (a, b) = span (not . pred) words in a ++ take 1 b
+    
+    -- we might want to give preference to the later subsequences of the key
+    revOrNot = fst $ randomR (True, False) g
+    
+    -- lowercase key then split into words
+    lowercaseKey  = words' $ BU.fromString $ map toLower $ BU.toString key
+    
     -- we don't want any punctuation in our key; that might steal focus
     -- from important words
     nopunctuation =
-      filter (\x -> not $ B.elem (B.head x) punctuation) (words' key)
-    -- we might want to give preference to the later subsequences of the key
-    revOrNot = fst $ randomR (True, False) g
+      filter (\x -> not $ B.elem (B.head x) punctuation) lowercaseKey
+    
+    -- to generate the actual key, word split the given key then let the key
+    -- generator do its magic.
+    key'     = toKey nopunctuation dic revOrNot
+    
     -- generate forward from key
     forward  = takeUntil (flip B.elem ".!?" . B.head)
-                 $ disPress key' dict g
+                 $ disPress key' dic g
+    
     -- generate backward from key
     backward = takeWhile (not . flip B.elem ".!?" . B.head)
-                 $ disPressBack key' dict g
-    takeUntil pred words =
-      let (a, b) = span (not . pred) words in a ++ take 1 b
+                 $ disPressBack key' dic g
+    
+    -- generate forward and backward, concatenate and then make string
+    sentence = unwords' $  reverse (drop (length key') backward)
+                        ++ key' ++ (drop (length key') forward)
 
-updateTextDict :: FilePath -> Dictionary Word -> IO (Dictionary Word)
-updateTextDict seed oldAssocs = do
-  text <- B.readFile seed >>= return . words' . B.map toLower
-  return $ updateDict text oldAssocs
+-- | Updates a dictionary from a file; all words are lowercased.
+updateDictFromFile :: FilePath -> Dictionary Word -> IO (Dictionary Word)
+updateDictFromFile seed oldAssocs =
+  B.readFile seed >>= \str -> return $ insertText str oldAssocs
+
+-- | Insert text into dictionary; all text is lowercased before insertion.
+insertText :: B.ByteString -> Dictionary Word -> Dictionary Word
+insertText str = updateDict (words' $ BU.fromString
+                                    $ map toLower
+                                    $ BU.toString str)

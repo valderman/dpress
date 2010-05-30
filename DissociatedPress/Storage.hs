@@ -2,9 +2,14 @@ module DissociatedPress.Storage (
     load, store
   ) where
 import DissociatedPress.Core
+import DissociatedPress.NGram
 import Data.Binary
 import Codec.Compression.Zlib
 import Data.ByteString.Lazy as B
+
+instance (Ord a, Binary a) => Binary (NGram a) where
+  put t = put $ children t
+  get   = get >>= return . NGram
 
 instance (Ord a, Binary a) => Binary (Dictionary a) where
   put = putD
@@ -41,3 +46,4 @@ load :: (Ord a, Binary a) => FilePath -> IO (Maybe (Dictionary a))
 load fp =
   catch (B.readFile fp >>= return . Just . decode . decompress)
         (\_ -> return Nothing)
+
