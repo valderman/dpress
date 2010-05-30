@@ -48,8 +48,8 @@ insert (k:ks) t =
   t {weight = weight t +# 1#,
      children = let x = M.alter f k (children t) in x `seq` x}
     where
-      f (Just t') = Just $! insert ks $! t'
-      f _         = Just $! insert ks $! empty
+      f (Just t') = Just $! insert ks t'
+      f _         = Just $! insert ks empty
 insert _ t =
   t {weight = weight t +# 1#}
 
