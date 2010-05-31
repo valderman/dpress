@@ -152,11 +152,14 @@ disPress' whatDict key@(w:ws) d gen =
       return $ pickOne possible gen
 disPress' _ k _ _ = k
 
-pickOne :: Ord a => [(a, Int)] -> StdGen -> (a, StdGen)
+pickOne :: (Random b, Ord b, Num b) => [(a, b)] -> StdGen -> (a, StdGen)
 pickOne items g = (pick items num, g')
   where
     pick ((x, w):xs) n | n <= w    = x
                        | otherwise = pick xs (n-w)
+    pick _ n                       = error $  "pick ran out of items "
+                                           ++ "to choose from! (n = "
+                                           ++ show n ++ ")"
     total     = sum $ map snd items
     (num, g') = randomR (1, total) g
 
@@ -170,25 +173,37 @@ randomKey dic gen = [key]
     possible      = (N.elems $ dict dic) !! idx
     key           = possible !! idx2-}
 
--- | Takes a (possibly) too long key and returns the longest subset of the key
---   that is actually a key in the given dictionary.
---   If the boolean parameter is True, subsequences later in the key are
---   preferred to those earlier. Default is to prefer earlier sequences.
-toKey :: Ord a => [a] -> Dictionary a -> Bool -> [a]
-toKey s d rev =
-  concat $ take 1 $ catKeys $ seqs s
+-- | Takes a (possibly) too long key and returns a subset of the key that
+--   actually exists in the dictionary. The returned subset is obtained by
+--   randomly picking one of the valid subsets, weighted by inverse
+--   commonality, and with an extra bias towards less common keys.
+toKey :: Ord a => [a] -> Dictionary a -> StdGen -> [a]
+toKey s d gen =
+  if s `isKeyIn` d
+     then s
+     else fst $ pickOne keys' gen
   where
-    -- it might be the case that a reversed list of sequences gives better
-    -- results. we don't know, so let the user specify whether he thinks so
-    -- or not.
-    seqs ws = sortBy longestFirst
-              $ ((if rev then reverse else id) $ subsequences s)
-    catKeys = foldr (\x a -> if x `isKeyIn` d then x:a else a) []
-    longestFirst a b =
-      case compare (length a) (length b) of
-        GT -> LT
-        LT -> GT
-        _  -> EQ
+    seqs = subsequences s
+    -- get weights for all keys, filter out the nonexistent ones
+    -- we also square the weights of the keys, to give less common keys an
+    -- extra bias.
+    keys = filter (\(_, w) -> w > 0)
+         $ map (\x -> (x, (N.weightIn x $ dict d)^2)) seqs
+    
+    -- get the heaviest key
+    maxWeight = maximum $ map snd keys
+
+    -- invert each key by subtracting its average weight from maxWeight.
+    -- this ensures that pickOne will prefer less common keys to more common
+    -- ones.
+    -- the average weight of a key is, intuitively enough, the average of
+    -- all its subkeys' weights.
+    -- we also subtract half the max weight and filter out anything that goes
+    -- subzero, to make sure that the most common alternatives never get
+    -- chosen.
+    calcWeight w len = (maxWeight - (w `div` len)) - (maxWeight `div` 2)
+    keys'            = filter (\(_, w) -> w > 0)
+                     $ map (\(x, w) -> (x, calcWeight w (length x))) keys
 
 -- | Returns true if the given key is valid for the given dictionary; that is,
 --   if it points to something.

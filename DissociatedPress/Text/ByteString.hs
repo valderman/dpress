@@ -68,15 +68,14 @@ randomSentence dic gen = ask (unwords' $ randomKey dic gen) dic gen
   where randomKey _ _ = []
 
 -- | Generate a sentence forward and backward from the given key.
+--   We also filter out any punctuation from the keys, as punctuation is too
+--   common to be in any good key.
 ask :: B.ByteString -> Dictionary Word -> StdGen -> B.ByteString
 ask key dic g =
   sentence
   where
     takeUntil pred words =
       let (a, b) = span (not . pred) words in a ++ take 1 b
-    
-    -- we might want to give preference to the later subsequences of the key
-    revOrNot = fst $ randomR (True, False) g
     
     -- lowercase key then split into words
     lowercaseKey  = words' $ BU.fromString $ map toLower $ BU.toString key
@@ -88,7 +87,7 @@ ask key dic g =
     
     -- to generate the actual key, word split the given key then let the key
     -- generator do its magic.
-    key'     = toKey nopunctuation dic revOrNot
+    key'     = toKey nopunctuation dic g
     
     -- generate forward from key
     forward  = takeUntil (flip B.elem ".!?" . B.head)

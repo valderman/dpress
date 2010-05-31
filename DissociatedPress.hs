@@ -5,7 +5,8 @@ module DissociatedPress (
     newDict, defDict, updateDict, toKey, optKey, merge,
     disPress, disPressBack, -- randomPress,
     randomSentence, ask, insertText,
-    store, load
+    store, load,
+    words', unwords'
   ) where
 import DissociatedPress.Core
 import DissociatedPress.Storage
