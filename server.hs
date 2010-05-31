@@ -15,7 +15,7 @@ protocolVersion = 1
 initString =  "dpress " ++ version
            ++ "\n" ++ "protocol: " ++ show protocolVersion
 keyLengths d =  "maxKeyLen: " ++ show (maxKeyLen d) ++ "\n"
-             ++ "preferKeyLen: " ++ show (preferKeyLen d)
+             ++ "preferKeyLen: " ++ show (preferKeyLen d) ++ "\n"
 readyString = "> "
 
 main = withSocketsDo $ do
