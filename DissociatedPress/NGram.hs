@@ -3,7 +3,7 @@
 module DissociatedPress.NGram (
     NGram (..),
     empty, insert, DissociatedPress.NGram.lookup, delete, (!), elems,
-    fold, merge
+    fold, merge, weightKey, weightIn
   ) where
 import qualified Data.Map as M
 import Data.Maybe
@@ -63,6 +63,24 @@ lookup [] (NGram _ t) =
      then Nothing
      else Just $ map (\(k, NGram w _) -> (k, fromIntegral $ I32# w))
                $ M.toList t
+
+-- | Returns the probability weights for each section of the given key.
+weightKey :: Ord a => [a] -> NGram a -> Maybe [(a, Int)]
+weightKey (k:ks) (NGram w ch) = do
+  child@(NGram w' ch') <- M.lookup k ch
+  child' <- weightKey ks child
+  return $ (k, fromIntegral $ I32# w') : child'
+weightKey [] (NGram _ t) =
+  return []
+
+-- | Get the probability of the given key appearing in a source text.
+--   This probability is simply the sum of the weights of all parts of the
+--   key. If the key doesn't exist, its weight is 0.
+weightIn :: Ord a => [a] -> NGram a -> Int
+weightIn k t =
+  case weightKey k t of 
+    Just k' -> sum $ map snd k'
+    _       -> 0
 
 -- | Delete a key from the trie. Note that deleting a key will also remove all
 --   children of that key. For example, delete "abc" $ insert "abcde" will
