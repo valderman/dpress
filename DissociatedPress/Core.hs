@@ -184,11 +184,14 @@ toKey s d gen =
      else fst $ pickOne keys' gen
   where
     seqs = subsequences s
-    -- get weights for all keys, filter out the nonexistent ones
+    -- get avg. weights for all keys, filter out the nonexistent ones
     -- we also square the weights of the keys, to give less common keys an
     -- extra bias.
+    combinedWeight x = (N.weightIn x (dict d) `div` length x)
+                     + (N.weightIn (reverse x) (dict2 d) `div` length x)
     keys = filter (\(_, w) -> w > 0)
-         $ map (\x -> (x, (N.weightIn x $ dict d)^2)) seqs
+         $ map (\x -> (x, combinedWeight x))
+         $ filter (/= []) seqs
     
     -- get the heaviest key
     maxWeight = maximum $ map snd keys
@@ -196,14 +199,12 @@ toKey s d gen =
     -- invert each key by subtracting its average weight from maxWeight.
     -- this ensures that pickOne will prefer less common keys to more common
     -- ones.
-    -- the average weight of a key is, intuitively enough, the average of
-    -- all its subkeys' weights.
     -- we also subtract half the max weight and filter out anything that goes
     -- subzero, to make sure that the most common alternatives never get
     -- chosen.
-    calcWeight w len = (maxWeight - (w `div` len)) - (maxWeight `div` 2)
-    keys'            = filter (\(_, w) -> w > 0)
-                     $ map (\(x, w) -> (x, calcWeight w (length x))) keys
+    calcWeight w = (maxWeight - w)
+    keys'        = filter (\(_, w) -> w > 0)
+                 $ map (\(x, w) -> (x, calcWeight w)) keys
 
 -- | Returns true if the given key is valid for the given dictionary; that is,
 --   if it points to something.
