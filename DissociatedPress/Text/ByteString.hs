@@ -71,7 +71,9 @@ randomSentence dic gen = ask (unwords' $ randomKey dic gen) dic gen
 --   common to be in any good key.
 ask :: B.ByteString -> Dictionary Word -> StdGen -> B.ByteString
 ask key dic g =
-  sentence
+  if B.null sentence
+     then randomSentence dic g
+     else sentence
   where
     takeUntil pred words =
       let (a, b) = span (not . pred) words in a ++ take 1 b
