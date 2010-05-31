@@ -73,14 +73,19 @@ weightKey (k:ks) (NGram w ch) = do
 weightKey [] (NGram _ t) =
   return []
 
--- | Get the probability of the given key appearing in a source text.
---   This probability is simply the sum of the weights of all parts of the
---   key. If the key doesn't exist, its weight is 0.
+-- | Get the weight of the given key in the given dictionary.
+--   This weight is calculated so that the closer to the beginning of the key
+--   a subkey appears, the more it affects the key's weight. The first word
+--   is worth twice as much as the second, which is worth twice as much as the
+--   third, etc.
 weightIn :: Ord a => [a] -> NGram a -> Int
 weightIn k t =
   case weightKey k t of 
-    Just k' -> sum $ map snd k'
+    Just k' -> (`div` length k) $ fst
+             $ foldr (\w (n, w') -> (w*w'+n, w' `div` 2)) (0, startWeight)
+             $ map snd k'
     _       -> 0
+  where startWeight = 2^length k
 
 -- | Delete a key from the trie. Note that deleting a key will also remove all
 --   children of that key. For example, delete "abc" $ insert "abcde" will
