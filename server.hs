@@ -51,6 +51,8 @@ handleClient h dv = flip catch (\e -> return ()) $ do
    getLn = hGetLine h
    converse d = do
      put readyString
+     -- use pack/unpack because sending chars >256 with Haskell's network
+     -- library screws them up big time
      q <- getLn >>= return . pack
      newStdGen >>= putLn . unpack . ask q d
      let d' = insertText q d
