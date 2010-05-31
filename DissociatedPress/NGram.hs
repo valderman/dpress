@@ -75,17 +75,17 @@ weightKey [] (NGram _ t) =
 
 -- | Get the weight of the given key in the given dictionary.
 --   This weight is calculated so that the closer to the beginning of the key
---   a subkey appears, the more it affects the key's weight. The first word
---   is worth twice as much as the second, which is worth twice as much as the
+--   a subkey appears, the less it affects the key's weight. The first word
+--   is worth half as much as the second, which is worth half as much as the
 --   third, etc.
 weightIn :: Ord a => [a] -> NGram a -> Int
 weightIn k t =
   case weightKey k t of 
     Just k' -> (`div` length k) $ fst
-             $ foldr (\w (n, w') -> (w*w'+n, w' `div` 2)) (0, startWeight)
+             $ foldr (\w (n, w') -> (w*w'+n, w'*2)) (0, startWeight)
              $ map snd k'
     _       -> 0
-  where startWeight = 2^length k
+  where startWeight = 1
 
 -- | Delete a key from the trie. Note that deleting a key will also remove all
 --   children of that key. For example, delete "abc" $ insert "abcde" will

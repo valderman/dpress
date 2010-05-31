@@ -153,6 +153,7 @@ disPress' whatDict key@(w:ws) d gen =
 disPress' _ k _ _ = k
 
 pickOne :: (Random b, Ord b, Num b) => [(a, b)] -> StdGen -> (a, StdGen)
+pickOne [] _    = error "pickOne: empty list!"
 pickOne items g = (pick items num, g')
   where
     pick ((x, w):xs) n | n <= w    = x
@@ -177,7 +178,7 @@ randomKey dic gen = [key]
 --   actually exists in the dictionary. The returned subset is obtained by
 --   randomly picking one of the valid subsets, weighted by inverse
 --   commonality, and with an extra bias towards less common keys.
-toKey :: Ord a => [a] -> Dictionary a -> StdGen -> [a]
+toKey :: (Show a, Ord a) => [a] -> Dictionary a -> StdGen -> [a]
 toKey s d gen =
   if s `isKeyIn` d
      then s
