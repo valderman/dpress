@@ -8,11 +8,11 @@ compile: compile.hs $(DPRESS_HSFILES)
 
 test: test.hs $(DPRESS_HSFILES)
 	ghc -O2 --make test.hs
-	strip -s compile
+	strip -s test
 
 server: server.hs $(DPRESS_HSFILES)
 	ghc -O2 --make server.hs
-	strip -s compile
+	strip -s server
 
 merge: merge.hs $(DPRESS_HSFILES)
 	ghc -O2 --make merge.hs
