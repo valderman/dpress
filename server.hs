@@ -27,7 +27,8 @@ main = withSocketsDo $ do
     (d:ds) -> load d >>= return . fromJust >>= \d' ->
       foldM (\a x -> load x >>= return . flip merge a . fromJust) d' ds
   dv <- newMVar dict
-  newStdGen >>= hPutStr stderr . unpack . ask (pack "") dict
+  hPutStrLn stderr $ "Forcing evaluation of dictionary..."
+  newStdGen >>= hPutStrLn stderr . unpack . ask (pack "") dict
 
   -- setup network
   let myPort = defPort
