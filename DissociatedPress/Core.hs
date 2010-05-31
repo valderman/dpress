@@ -1,8 +1,8 @@
 module DissociatedPress.Core (
     Dictionary (..),
     newDict, defDict, updateDict, setPreferredKeyLength,
-    disPress, disPressBack, {-randomPress,
-    randomKey,-} toKey, isKeyIn, optKey, merge
+    disPress, disPressBack, randomPress,
+    randomKey, toKey, isKeyIn, optKey, merge
   ) where
 import qualified DissociatedPress.NGram as N
 import Data.List
@@ -154,25 +154,37 @@ disPress' _ k _ _ = k
 
 pickOne :: (Random b, Ord b, Num b) => [(a, b)] -> StdGen -> (a, StdGen)
 pickOne [] _    = error "pickOne: empty list!"
-pickOne items g = (pick items num, g')
+pickOne items g = if null items'
+                     then (pick (map (\(x, _) -> (x, 1)) items) num, g')
+                     else (pick items' num, g')
   where
+    items'    = filter ((> 0) . snd) items
     pick ((x, w):xs) n | n <= w    = x
                        | otherwise = pick xs (n-w)
     pick _ n                       = error $  "pick ran out of items "
                                            ++ "to choose from! (n = "
-                                           ++ show n ++ ")"
-    total     = sum $ map snd items
+                                           ++ show n ++ ", total = "
+                                           ++ show total ++ ", weights = "
+                                           ++ show (map snd items) ++ ")"
+    total     = sum $ map snd items'
     (num, g') = randomR (1, total) g
 
 -- | Randomly chooses a key for the map. The key uses only a single word,
 --   so that it can be used properly for both forward and backward generation.
-{-randomKey :: Ord a => Dictionary a -> StdGen -> [a]
-randomKey dic gen = [key]
+randomKey :: (Ord a, Show a) => Dictionary a -> StdGen -> [a]
+randomKey dic gen = getKey (preferKeyLen dic) (dict dic) gen
   where
-    (idx, gen')   = randomR (0, 0 {-(N.size $ dict dic) - 1-}) gen
-    (idx2, gen'') = randomR (0, length possible - 1) gen'
-    possible      = (N.elems $ dict dic) !! idx
-    key           = possible !! idx2-}
+    getKey 0 _  _=
+      []
+    getKey n trie g =
+      let elems        = N.childList trie
+          maxWeight    = maximum $ map snd elems
+          invWElems    = map (\(x, w) -> (x, maxWeight - w)) elems
+          (subkey, g') = pickOne invWElems g
+          next         = fromJust $ N.subNGram [subkey] trie
+          in if null invWElems
+                then []
+                else subkey : getKey (n-1) next g'
 
 -- | Takes a (possibly) too long key and returns a subset of the key that
 --   actually exists in the dictionary. The returned subset is obtained by
@@ -215,5 +227,5 @@ k `isKeyIn` d = case N.lookup k (dict d) of
   _       -> True
 
 -- | Generates text using a randomly selected key
--- randomPress :: Ord a => Dictionary a -> StdGen -> [a]
--- randomPress dic gen = disPress (randomKey dic gen) dic gen
+randomPress :: (Show a, Ord a) => Dictionary a -> StdGen -> [a]
+randomPress dic gen = disPress (randomKey dic gen) dic gen

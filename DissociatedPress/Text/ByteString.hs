@@ -65,7 +65,6 @@ unwords' = B.concat . unwords'' where
 -- | Generates a completely random sentence
 randomSentence :: Dictionary Word -> StdGen -> B.ByteString
 randomSentence dic gen = ask (unwords' $ randomKey dic gen) dic gen
-  where randomKey _ _ = []
 
 -- | Generate a sentence forward and backward from the given key.
 --   We also filter out any punctuation from the keys, as punctuation is too

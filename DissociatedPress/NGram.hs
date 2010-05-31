@@ -3,7 +3,7 @@
 module DissociatedPress.NGram (
     NGram (..),
     empty, insert, DissociatedPress.NGram.lookup, delete, (!), elems,
-    fold, merge, weightKey, weightIn
+    fold, merge, weightKey, weightIn, numChildren, subNGram, childList
   ) where
 import qualified Data.Map as M
 import Data.Maybe
@@ -26,6 +26,22 @@ t ! k = fromJust $ DissociatedPress.NGram.lookup k t
 -- | Standard fold over all n-grams in the trie.
 fold :: Ord b => (a -> [(b, Int)] -> a) -> a -> NGram b -> a
 fold f acc ngram = foldl f acc (elems ngram)
+
+-- | Return the number of children this node has.
+numChildren :: Ord a => NGram a -> Int
+numChildren = M.size . children
+
+-- | Return a list of all children belonging to this node.
+childList :: Ord a => NGram a -> [(a, Int)]
+childList (NGram _ ch) =
+  M.foldWithKey (\k (NGram w _) xs -> (k, fromIntegral $ I32# w):xs) [] ch
+
+-- | Return the n-gram trie pointed to by the given key.
+subNGram :: Ord a => [a] -> NGram a -> Maybe (NGram a)
+subNGram (x:xs) n =
+  M.lookup x (children n) >>= subNGram xs
+subNGram _ n =
+  return n
 
 -- | Merge two n-gram tries together.
 merge :: Ord a => NGram a -> NGram a -> NGram a
