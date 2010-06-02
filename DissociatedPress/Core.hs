@@ -116,8 +116,10 @@ optKey whatDict dic gen key
     key
   | otherwise                      =
     case mPossible of
-      Nothing -> key
-      _       -> optKey whatDict dic gen' key'
+      Nothing | not $ null possible ->
+        key
+      _       ->
+        optKey whatDict dic gen' key'
     where
       key'        = key ++ [fst $ pickOne (possible) gen]
       possible    = fromJust mPossible
@@ -149,6 +151,9 @@ disPress' whatDict key@(w:ws) d gen =
   where
     word = do
       possible <- N.lookup key (whatDict d)
+      if null possible
+        then fail ""
+        else return ()
       return $ pickOne possible gen
 disPress' _ k _ _ = k
 
@@ -194,7 +199,9 @@ toKey :: (Show a, Ord a) => [a] -> Dictionary a -> StdGen -> [a]
 toKey s d gen =
   if s `isKeyIn` d
      then s
-     else fst $ pickOne keys' gen
+     else if not $ null keys'
+             then fst $ pickOne keys' gen
+             else []
   where
     seqs = subsequences s
     -- get avg. weights for all keys, filter out the nonexistent ones
