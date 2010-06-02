@@ -24,5 +24,6 @@ main = do
     hFlush stdout
     B.putStr "> "
     hFlush stdout
-    askSession d (snd (random g :: (Bool, StdGen))) ss
+    let d' = insertText s d
+    askSession d' (snd (random g :: (Bool, StdGen))) ss
   askSession _ _ _ = B.putStrLn ""
