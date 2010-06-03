@@ -7,7 +7,7 @@ module DissociatedPress.Core (
   ) where
 import qualified DissociatedPress.NGram as N
 import Data.List
-import Data.Maybe (fromJust, isNothing)
+import Data.Maybe (fromJust, isJust)
 import System.Random
 
 data Ord a => Dictionary a = Dictionary {
@@ -109,7 +109,7 @@ optKey whatDict dic gen key
   | length key >= preferKeyLen dic =
     key
   | otherwise =
-    if isNothing mPossible || not (null possible)
+    if isJust mPossible && not (null possible)
        then optKey whatDict dic gen' key'
        else key
     where
