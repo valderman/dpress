@@ -30,3 +30,4 @@ clean:
 
 distclean: clean
 	find . -name '*.hs~' -exec rm \{\} \;
+	rm tget compile merge server test
