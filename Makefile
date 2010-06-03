@@ -1,25 +1,26 @@
 DPRESS_HSFILES=DissociatedPress/Text/ByteString.hs DissociatedPress/Text/String.hs DissociatedPress/Core.hs DissociatedPress/NGram.hs DissociatedPress/Storage.hs DissociatedPress.hs
+HSFLAGS=-O2 -threaded --make
 
 all: compile test server merge tget
 
 compile: compile.hs $(DPRESS_HSFILES)
-	ghc -O2 --make compile.hs
+	ghc $(HSFLAGS) compile.hs
 	strip -s compile
 
 test: test.hs $(DPRESS_HSFILES)
-	ghc -O2 --make test.hs
+	ghc $(HSFLAGS) test.hs
 	strip -s test
 
 server: server.hs $(DPRESS_HSFILES)
-	ghc -O2 --make server.hs
+	ghc $(HSFLAGS) server.hs
 	strip -s server
 
 tget: tget.hs $(DPRESS_HSFILES)
-	ghc -O2 --make tget.hs
+	ghc $(HSFLAGS) tget.hs
 	strip -s tget
 
 merge: merge.hs $(DPRESS_HSFILES)
-	ghc -O2 --make merge.hs
+	ghc $(HSFLAGS) merge.hs
 	strip -s merge
 
 clean:
