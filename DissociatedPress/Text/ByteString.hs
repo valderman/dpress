@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Less general functions for working with textual data.
 module DissociatedPress.Text.ByteString (
     Word,
     randomSentence, ask, updateDictFromFile, words', unwords', insertText
@@ -20,6 +21,7 @@ nonword     = B.concat [whitespace, punctuation]
 
 newtype WordsState = WS Int deriving Eq
 
+stSpace, stPunct, stWord :: WordsState
 stSpace = WS 0
 stPunct = WS 1
 stWord  = WS 2
@@ -53,14 +55,10 @@ words' = go stSpace . B.filter (not . flip B.elem ignore)
 unwords' :: [Word] -> B.ByteString
 unwords' = B.concat . unwords'' where
   unwords'' (a:b:ws)
-    | B.elem (B.head b) punctuation =
-      a:unwords'' (b:ws)
-    | otherwise =
-      a:unwords'' ((' ' `B.cons` b):ws)
-  unwords'' (w:[]) =
-    [w]
-  unwords'' [] =
-    []
+    | B.elem (B.head b) punctuation = a:unwords'' (b:ws)
+    | otherwise                     = a:unwords'' ((' ' `B.cons` b):ws)
+  unwords'' (w:[])                  = [w]
+  unwords'' []                      = []
 
 -- | Generates a completely random sentence
 randomSentence :: Dictionary Word -> StdGen -> B.ByteString
@@ -88,15 +86,14 @@ ask key dic g =
     
     -- to generate the actual key, word split the given key then let the key
     -- generator do its magic.
-    key'     = toKey nopunctuation dic g
+    key' = toKey nopunctuation dic g
     
     -- generate forward from key
-    forward  = takeUntil (flip B.elem ".!?" . B.head)
-                 $ disPress key' dic g
+    forward  = takeUntil (flip B.elem ".!?" . B.head) $ disPress key' dic g
     
     -- generate backward from key
     backward = takeWhile (not . flip B.elem ".!?" . B.head)
-                 $ disPressBack key' dic g
+                   $ disPressBack key' dic g
     
     -- generate forward and backward, concatenate and then make string
     sentence = unwords' $  reverse (drop (length key') backward)

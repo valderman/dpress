@@ -1,3 +1,4 @@
+-- | Core functionality for generating random sequences using n-grams.
 module DissociatedPress.Core (
     Dictionary (..),
     newDict, defDict, updateDict, setPreferredKeyLength,
@@ -6,7 +7,7 @@ module DissociatedPress.Core (
   ) where
 import qualified DissociatedPress.NGram as N
 import Data.List
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isNothing)
 import System.Random
 
 data Ord a => Dictionary a = Dictionary {
@@ -71,20 +72,14 @@ newDict max prefer twoway = defDict {
 merge :: Ord a => Dictionary a -> Dictionary a -> Dictionary a
 merge a b =
   Dictionary {
-      maxKeyLen    = kLen,
-      preferKeyLen = kPref,
-      twoWay       = tWay,
-      dict         = d1,
-      dict2        = d2
+      maxKeyLen    = min (maxKeyLen a) (maxKeyLen b),
+      preferKeyLen = min (preferKeyLen a) (preferKeyLen b),
+      twoWay       = twoWay a && twoWay b,
+      dict         = N.merge (dict a) (dict b),
+      dict2        = if twoWay a && twoWay b
+                       then N.merge (dict2 a) (dict2 b)
+                       else N.empty
     }
-  where
-    kLen  = min (maxKeyLen a) (maxKeyLen b)
-    kPref = min (preferKeyLen a) (preferKeyLen b)
-    tWay  = twoWay a && twoWay b
-    d1    = N.merge (dict a) (dict b)
-    d2    = if tWay
-               then N.merge (dict2 a) (dict2 b)
-               else N.empty
 
 -- | Update a dictionary with the associations from the given list of words.
 updateDict :: Ord a => [a] -> Dictionary a -> Dictionary a
@@ -97,14 +92,13 @@ updateDict words d = d2 where
 -- | Update only the forward dictionary using the given word list.
 updateDict' :: Ord a => [a] -> Dictionary a -> Dictionary a
 updateDict' words@(w:ws) d =
-  updateDict' ws d {dict = dict'}
-  where
-    dict' = N.insert (take (maxKeyLen d+1) words) (dict d)
+  updateDict' ws d {dict = N.insert (take (maxKeyLen d+1) words) (dict d)}
 updateDict' _ dict        =
   dict
 
 -- | Try to use the given key and random generator to derive a preferred length
---   key for this dictionary.
+--   key for this dictionary. If the key's length is >= the preferred key
+--   length, it is returned without modification.
 optKey :: Ord a
        => (Dictionary a -> N.NGram a) -- ^ Use dict or dict2?
        -> Dictionary a                   -- ^ Dictionary to work on
@@ -114,16 +108,14 @@ optKey :: Ord a
 optKey whatDict dic gen key
   | length key >= preferKeyLen dic =
     key
-  | otherwise                      =
-    case mPossible of
-      Nothing | not $ null possible ->
-        key
-      _       ->
-        optKey whatDict dic gen' key'
+  | otherwise =
+    if isNothing mPossible || not (null possible)
+       then optKey whatDict dic gen' key'
+       else key
     where
-      key'        = key ++ [fst $ pickOne (possible) gen]
-      possible    = fromJust mPossible
       mPossible   = N.lookup key (whatDict dic)
+      possible    = fromJust mPossible
+      key'        = key ++ [fst $ pickOne (possible) gen]
       (idx, gen') = randomR (0, length possible-1) gen
 
 -- | Generate text backward from the given key
@@ -157,6 +149,11 @@ disPress' whatDict key@(w:ws) d gen =
       return $ pickOne possible gen
 disPress' _ k _ _ = k
 
+-- | Chooses a random item from a list of weighted items. If the list was,
+--   for example, [(a, 2), (b, 10)], then b would be five times as likely
+--   as a to be chosen. An item with weight <= 0 will not be chosen.
+--   If all items in the list has a <= 0 weight, all items will be assigned
+--   a weight of 1.
 pickOne :: (Random b, Ord b, Num b) => [(a, b)] -> StdGen -> (a, StdGen)
 pickOne [] _    = error "pickOne: empty list!"
 pickOne items g = if null items'
@@ -166,13 +163,7 @@ pickOne items g = if null items'
     items'    = filter ((> 0) . snd) items
     pick ((x, w):xs) n | n <= w    = x
                        | otherwise = pick xs (n-w)
-    pick _ n                       = error $  "pick ran out of items "
-                                           ++ "to choose from! (n = "
-                                           ++ show n ++ ", total = "
-                                           ++ show total ++ ", weights = "
-                                           ++ show (map snd items) ++ ")"
-    total     = sum $ map snd items'
-    (num, g') = randomR (1, total) g
+    (num, g') = randomR (1, sum $ map snd items') g
 
 -- | Randomly chooses a key for the map. The key uses only a single word,
 --   so that it can be used properly for both forward and backward generation.
