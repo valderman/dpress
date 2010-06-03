@@ -15,7 +15,7 @@ type Word = B.ByteString
 -- | Definitions for words' and unwords'
 whitespace, punctuation, ignore, nonword :: B.ByteString
 whitespace  = " \n\t"
-punctuation = ",.!?:;+-*/&="
+punctuation = ",.!?:;*/&="
 ignore      = "\r()\""
 nonword     = B.concat [whitespace, punctuation]
 
