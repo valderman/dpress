@@ -8,10 +8,12 @@ import DissociatedPress
 import Data.Maybe (fromJust)
 import System.Random
 import Data.ByteString.Lazy.Char8 (pack, unpack)
+import Data.Char (isSpace)
 
+dictFile = "dictionary.bin"
 defPort = 1917
-version = "0.01"
-protocolVersion = 1
+version = "0.02"
+protocolVersion = 2
 initString =  "server: dpress " ++ version
            ++ "\n" ++ "protocol: " ++ show protocolVersion
 keyLengths d =  "maxKeyLen: " ++ show (maxKeyLen d) ++ "\n"
@@ -54,8 +56,30 @@ handleClient h dv = flip catch (\e -> return ()) $ do
      put readyString
      -- use pack/unpack because sending chars >256 with Haskell's network
      -- library screws them up big time
-     q <- getLn >>= return . pack
-     newStdGen >>= putLn . unpack . ask q d
-     let d' = insertText q d
-     swapMVar dv d'
-     converse d'
+     q <- getLn
+     case takeWhile (not . isSpace) q of
+       -- ":save" saves the current dictionary using the default dict name
+       (":save") -> do
+         store dictFile d
+         converse d
+
+       -- ":load" loads the default dict file
+       (":load") -> do
+         md' <- load dictFile
+         case md' of
+           Just d' -> do
+             swapMVar dv d'
+             converse d'
+           _ ->
+             converse d
+       
+       -- ": a bunch of text" adds "a bunch of text" to the dictionary
+       (":") -> do
+         let d' = id $! insertText (pack $ drop 2 q) d
+         swapMVar dv d'
+         converse d'
+
+       -- any other text is interpreted as a question
+       _ -> do
+          newStdGen >>= putLn . unpack . ask (pack q) d
+          converse d
