@@ -92,7 +92,9 @@ updateDict words d = d2 where
 -- | Update only the forward dictionary using the given word list.
 updateDict' :: Ord a => [a] -> Dictionary a -> Dictionary a
 updateDict' words@(w:ws) d =
-  updateDict' ws d {dict = N.insert (take (maxKeyLen d+1) words) (dict d)}
+  updateDict' ws d {
+        dict = id $! N.insert (take (maxKeyLen d+1) words) (dict d)
+    }
 updateDict' _ dict        =
   dict
 
