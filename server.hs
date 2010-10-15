@@ -7,7 +7,7 @@ import System.Environment (getArgs)
 import DissociatedPress
 import Data.Maybe (fromJust)
 import System.Random
-import Data.ByteString.Lazy.Char8 (pack, unpack)
+import Data.ByteString.Lazy.Char8 as B (pack, unpack, null)
 import Data.Char (isSpace)
 
 dictFile = "dictionary.bin"
@@ -81,5 +81,8 @@ handleClient h dv = flip catch (\e -> return ()) $ do
 
        -- any other text is interpreted as a question
        _ -> do
-          newStdGen >>= putLn . unpack . ask (pack q) d
+          text <- return . ask (pack q) d =<< newStdGen
+          if B.null text
+            then putLn . unpack . randomSentence d =<< newStdGen
+            else putLn $ unpack text
           converse d
