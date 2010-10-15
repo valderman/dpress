@@ -170,11 +170,9 @@ pickOne items g = if null items'
 -- | Randomly chooses a key for the map. The key uses only a single word,
 --   so that it can be used properly for both forward and backward generation.
 randomKey :: (Ord a, Show a) => Dictionary a -> StdGen -> [a]
-randomKey dic gen = getKey (preferKeyLen dic) (dict dic) gen
+randomKey dic gen = getKey (dict dic) gen
   where
-    getKey 0 _  _=
-      []
-    getKey n trie g =
+    getKey trie g =
       let elems        = N.childList trie
           maxWeight    = maximum $ map snd elems
           invWElems    = map (\(x, w) -> (x, maxWeight - w)) elems
@@ -182,7 +180,7 @@ randomKey dic gen = getKey (preferKeyLen dic) (dict dic) gen
           next         = fromJust $ N.subNGram [subkey] trie
           in if null invWElems
                 then []
-                else subkey : getKey (n-1) next g'
+                else [subkey]
 
 -- | Takes a (possibly) too long key and returns a subset of the key that
 --   actually exists in the dictionary. The returned subset is obtained by
