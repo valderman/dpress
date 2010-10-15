@@ -83,6 +83,6 @@ handleClient h dv = flip catch (\e -> return ()) $ do
        _ -> do
           text <- return . ask (pack q) d =<< newStdGen
           if B.null text
-            then putLn . unpack . B.take 200 . randomSentence d =<< newStdGen
-            else putLn $ unpack $ B.take 200 text
+            then putLn . unpack . B.take 450 . randomSentence d =<< newStdGen
+            else putLn $ unpack $ B.take 450 text
           converse d
