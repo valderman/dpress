@@ -1,5 +1,5 @@
 DPRESS_HSFILES=DissociatedPress/Text/ByteString.hs DissociatedPress/Text/String.hs DissociatedPress/Core.hs DissociatedPress/NGram.hs DissociatedPress/Storage.hs DissociatedPress.hs
-HSFLAGS=-O2 --make
+HSFLAGS=-O2 --make -XDatatypeContexts
 
 all: compile test server merge tget
 
