@@ -14,7 +14,7 @@ dpress depends on the GHC Haskell compiler and will not build without it.
 DissociatedPress.Storage depends on the packages binary and zlib.
 
 To install these on Debian or Ubuntu, just do (as root):
-# apt-get install ghc6 libghc6-{binary,zlib}-dev
+# apt-get install ghc libghc-{binary,zlib,utf8-string,random,network}-dev
 
 On Windows and other platforms where the official Haskell Platform is the
 preferred Haskell distribution, simply download the latest version of
