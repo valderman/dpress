@@ -10,4 +10,4 @@ module DissociatedPress (
   ) where
 import DissociatedPress.Core
 import DissociatedPress.Storage
-import DissociatedPress.Text.ByteString
+import DissociatedPress.Text
