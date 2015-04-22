@@ -10,7 +10,7 @@ import Data.List
 import Data.Maybe (fromJust, isJust)
 import System.Random
 
-data Ord a => Dictionary a = Dictionary {
+data Dictionary a = Dictionary {
     maxKeyLen    :: Int,
     preferKeyLen :: Int,
     twoWay       :: Bool,
@@ -21,7 +21,7 @@ data Ord a => Dictionary a = Dictionary {
 -- | Create a dictionary with default settings. This dictionary is optimized
 --   for producing nice text with short keylengths. See 'newDict' for the
 --   default settings used for this dictionary.
-defDict :: Ord a => Dictionary a
+defDict :: Dictionary a
 defDict = Dictionary {
     maxKeyLen    = 3,
     preferKeyLen = 3,
@@ -32,13 +32,12 @@ defDict = Dictionary {
 
 -- | Sets the preferred key length of the given dictionary. The value is
 --   to the maximum key length.
-setPreferredKeyLength :: Ord a => Int -> Dictionary a -> Dictionary a
+setPreferredKeyLength :: Int -> Dictionary a -> Dictionary a
 setPreferredKeyLength len d =
   d {preferKeyLen = min len (maxKeyLen d)}
 
 -- | Generate a new dictionary with custom settings.
-newDict :: Ord a
-        => Int          -- ^ Maximum key length that can be used with this
+newDict :: Int          -- ^ Maximum key length that can be used with this
                         --   dictionary. Dictionary size increases linear
                         --   to this parameter.
                         --   Default: 3

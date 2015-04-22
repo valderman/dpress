@@ -9,16 +9,15 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.List (foldl')
 import GHC.Prim
-import GHC.Int
 
 data NGram a = NGram {
-    weight   :: Int#,
+    weight   :: !Int,
     children :: !(M.Map a (NGram a))
   } deriving Show
 
 -- | An empty n-gram trie
 empty :: NGram a
-empty = NGram {weight = 0#, children = id $! M.empty}
+empty = NGram {weight = 0, children = id $! M.empty}
 
 -- | Returns the set of keys following the given key.
 (!) :: Ord a => NGram a -> [a] -> [(a, Int)]
@@ -36,7 +35,7 @@ numChildren = M.size . children
 childList :: Ord a => NGram a -> [(a, Int)]
 childList (NGram _ ch) =
   M.foldWithKey (\k (NGram w _) xs ->
-                  xs `seq` (k, fromIntegral $ I32# w):xs) [] ch
+                  xs `seq` (k, fromIntegral w):xs) [] ch
 
 -- | Return the n-gram trie pointed to by the given key.
 subNGram :: Ord a => [a] -> NGram a -> Maybe (NGram a)
@@ -57,19 +56,19 @@ elems (NGram w t) = M.foldWithKey extract [] t
   where
     extract k v acc =
       case elems v of
-        [] -> [(k, fromIntegral $ I32# w)]:acc
-        ev ->  (map ((k, fromIntegral $ I32# w):) ev) ++ acc
+        [] -> [(k, fromIntegral w)]:acc
+        ev ->  (map ((k, fromIntegral w):) ev) ++ acc
 
 -- | Insert a new n-gram into the trie.
 insert :: Ord a => [a] -> NGram a -> NGram a
 insert (k:ks) t =
-  t {weight = weight t +# 1#,
+  t {weight = weight t + 1,
      children = let x = M.alter f k (children t) in x `seq` x}
     where
       f (Just t') = Just $! insert ks $! t'
       f _         = Just $! insert ks $! empty
 insert _ t =
-  t {weight = weight t +# 1#}
+  t {weight = weight t + 1}
 
 -- | Return all keys following the given key in the trie.
 lookup :: Ord a => [a] -> NGram a -> Maybe [(a, Int)]
@@ -79,7 +78,7 @@ lookup (k:ks) t = do
 lookup [] (NGram _ t) =
   if null $ M.keys t
      then Nothing
-     else Just $ map (\(k, NGram w _) -> (k, fromIntegral $ I32# w))
+     else Just $ map (\(k, NGram w _) -> (k, fromIntegral w))
                $ M.toList t
 
 -- | Returns the probability weights for each section of the given key.
@@ -87,7 +86,7 @@ weightKey :: Ord a => [a] -> NGram a -> Maybe [(a, Int)]
 weightKey (k:ks) (NGram w ch) = do
   child@(NGram w' ch') <- M.lookup k ch
   child' <- weightKey ks child
-  return $ (k, fromIntegral $ I32# w') : child'
+  return $ (k, fromIntegral w') : child'
 weightKey [] (NGram _ t) =
   return []
 

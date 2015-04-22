@@ -7,11 +7,11 @@ import DissociatedPress.NGram
 import Data.Binary
 import Codec.Compression.Zlib
 import Data.ByteString.Lazy as B
-import GHC.Int
+import Control.Exception (catch, SomeException)
 
 instance (Ord a, Binary a) => Binary (NGram a) where
-  put (NGram w c) = (put $ I32# w) >> put c
-  get   = get >>= \(I32# w) -> get >>= \c -> return $! NGram w $! c
+  put (NGram w c) = put w >> put c
+  get   = get >>= \w -> get >>= \c -> return $! NGram w c
 
 instance (Ord a, Binary a) => Binary (Dictionary a) where
   put = putD
@@ -47,4 +47,4 @@ store fp d =
 load :: (Ord a, Binary a) => FilePath -> IO (Maybe (Dictionary a))
 load fp =
   catch (B.readFile fp >>= return . Just . decode . decompress)
-        (\_ -> return Nothing)
+        (\e -> (e :: SomeException) `seq` return Nothing)
