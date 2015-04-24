@@ -11,11 +11,11 @@ import Data.Maybe (fromJust, isJust)
 import System.Random
 
 data Dictionary a = Dictionary {
-    maxKeyLen    :: Int,
-    preferKeyLen :: Int,
-    twoWay       :: Bool,
-    dict         :: N.NGram a,
-    dict2        :: N.NGram a
+    maxKeyLen    :: !Int,
+    preferKeyLen :: !Int,
+    twoWay       :: !Bool,
+    dict         :: !(N.NGram a),
+    dict2        :: !(N.NGram a)
   } deriving Show
 
 -- | Create a dictionary with default settings. This dictionary is optimized

@@ -2,11 +2,13 @@
 module Main where
 import DissociatedPress.Core
 import DissociatedPress.Storage
-import DissociatedPress.Text.ByteString as DTB
+import DissociatedPress.Text as DT
 import Codec.Compression.Zlib
 import Data.Binary
-import qualified Data.ByteString.Lazy.Char8 as B
-import qualified Data.ByteString.Lazy.UTF8 as BU
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text as T
+import Data.Text.Binary ()
+import Data.Text.Encoding
 import Data.Char (toLower)
 import System.Environment (getArgs)
 import System.IO
@@ -16,17 +18,22 @@ main = do
   hPutStrLn stderr $  "Usage: input text on stdin, writes dictionary to "
                    ++ "stdout.\n-p n or -pn sets preferred key length to n.\n"
                    ++ "-k n or -kn sets max key length to n."
-  let dict = readOpts args (defDict :: Dictionary DTB.Word)
+  let dict = readOpts args (defDict :: Dictionary DT.Word)
   hPutStrLn stderr $  "Compiling using -k" ++ show (maxKeyLen dict)
                    ++ " -p" ++ show (preferKeyLen dict) ++ "."
                    ++ if maxKeyLen dict == maxKeyLen
-                                           (defDict :: Dictionary DTB.Word)
+                                           (defDict :: Dictionary DT.Word)
                          && preferKeyLen dict == preferKeyLen
-                                           (defDict :: Dictionary DTB.Word)
+                                           (defDict :: Dictionary DT.Word)
                          then " (defaults)"
                          else ""
-  B.interact $ compress . encode . flip updateDict dict . words'
-                        . BU.fromString . map toLower . BU.toString
+  BSL.interact $ compress
+               . encode
+               . flip updateDict dict
+               . words'
+               . T.map toLower
+               . decodeUtf8
+               . BSL.toStrict
   where
     readOpts (a:as) d
       | take 2 a == "-k" =
