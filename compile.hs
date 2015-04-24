@@ -10,6 +10,7 @@ import qualified Data.Text as T
 import Data.Text.Binary ()
 import Data.Text.Encoding
 import Data.Char (toLower)
+import Data.List
 import System.Environment (getArgs)
 import System.IO
 
@@ -29,8 +30,9 @@ main = do
                          else ""
   BSL.interact $ compress
                . encode
-               . flip updateDict dict
-               . words'
+               . foldl' (flip updateDict) dict
+               . map T.words
+               . T.lines
                . T.map toLower
                . decodeUtf8
                . BSL.toStrict

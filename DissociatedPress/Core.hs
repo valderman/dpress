@@ -3,19 +3,22 @@ module DissociatedPress.Core (
     Dictionary (..),
     newDict, defDict, updateDict, setPreferredKeyLength,
     disPress, disPressBack, randomPress,
-    randomKey, toKey, isKeyIn, optKey, merge
+    randomKey, toKey, isKeyIn, merge
   ) where
 import qualified DissociatedPress.NGram as N
+import qualified Data.Map.Strict as M
 import Data.List
 import Data.Maybe (fromJust, isJust)
 import System.Random
+import Data.Hashable
 
 data Dictionary a = Dictionary {
     maxKeyLen    :: !Int,
     preferKeyLen :: !Int,
     twoWay       :: !Bool,
-    dict         :: !(N.NGram a),
-    dict2        :: !(N.NGram a)
+    dict         :: !N.NGram,
+    dict2        :: !N.NGram,
+    wordMap      :: !(M.Map Int a)
   } deriving Show
 
 -- | Create a dictionary with default settings. This dictionary is optimized
@@ -27,7 +30,8 @@ defDict = Dictionary {
     preferKeyLen = 3,
     twoWay       = True,
     dict         = N.empty,
-    dict2        = N.empty
+    dict2        = N.empty,
+    wordMap      = M.empty
   }
 
 -- | Sets the preferred key length of the given dictionary. The value is
@@ -68,7 +72,7 @@ newDict max prefer twoway = defDict {
 --   second one. Thus, if you have a small dictionary a and a large dictionary
 --   b that you wish to merge, doing merge a b would be faster than doing
 --   merge b a.
-merge :: Ord a => Dictionary a -> Dictionary a -> Dictionary a
+merge :: Dictionary a -> Dictionary a -> Dictionary a
 merge a b =
   Dictionary {
       maxKeyLen    = min (maxKeyLen a) (maxKeyLen b),
@@ -77,35 +81,33 @@ merge a b =
       dict         = N.merge (dict a) (dict b),
       dict2        = if twoWay a && twoWay b
                        then N.merge (dict2 a) (dict2 b)
-                       else N.empty
+                       else N.empty,
+      wordMap      = wordMap a `M.union` wordMap b
     }
 
 -- | Update a dictionary with the associations from the given list of words.
-updateDict :: Ord a => [a] -> Dictionary a -> Dictionary a
-updateDict words d = d2 where
-    d1 = if twoWay d
-            then updateDict' (reverse words) d{dict=dict2 d, dict2=dict d}
-            else d {dict = dict2 d, dict2 = dict d}
-    d2 = updateDict' words d {dict = dict2 d1, dict2 = dict d1}
-
--- | Update only the forward dictionary using the given word list.
-updateDict' :: Ord a => [a] -> Dictionary a -> Dictionary a
-updateDict' words@(w:ws) d =
-  updateDict' ws d {
-        dict = id $! N.insert (take (maxKeyLen d+1) words) (dict d)
+updateDict :: Hashable a => [a] -> Dictionary a -> Dictionary a
+updateDict words d =
+  d {
+      dict = N.insert (take (maxKeyLen d+1) hashes) (dict d),
+      dict2 = if twoWay d
+                then N.insert (take (maxKeyLen d+1) hs) (dict2 d)
+                else dict2 d,
+      wordMap = foldl' (\m (w,h) -> M.insert h w m) (wordMap d) (zip ws hs)
     }
-updateDict' _ dict        =
-  dict
+  where
+    hashes = map hash words
+    ws = reverse words
+    hs = reverse hashes
 
 -- | Try to use the given key and random generator to derive a preferred length
 --   key for this dictionary. If the key's length is >= the preferred key
 --   length, it is returned without modification.
-optKey :: Ord a
-       => (Dictionary a -> N.NGram a) -- ^ Use dict or dict2?
-       -> Dictionary a                   -- ^ Dictionary to work on
-       -> StdGen                         -- ^ Random generator
-       -> [a]                            -- ^ Key to optimize
-       -> [a]
+optKey :: (Dictionary a -> N.NGram) -- ^ Use dict or dict2?
+       -> Dictionary a              -- ^ Dictionary to work on
+       -> StdGen                    -- ^ Random generator
+       -> [Int]                     -- ^ Key to optimize
+       -> [Int]
 optKey whatDict dic gen key
   | length key >= preferKeyLen dic =
     key
@@ -120,30 +122,32 @@ optKey whatDict dic gen key
       (idx, gen') = randomR (0, length possible-1) gen
 
 -- | Generate text backward from the given key
-disPressBack :: Ord a => [a] -> Dictionary a -> StdGen -> [a]
-disPressBack key d gen = disPress' dict2 (reverse key) d gen
+disPressBack :: Hashable a => [a] -> Dictionary a -> StdGen -> [a]
+disPressBack k d gen =
+  map (wordMap d M.!) $ disPress' dict2 (map hash $ reverse k) d gen
 
 -- | Generate text forward from the given key
-disPress :: Ord a => [a] -> Dictionary a -> StdGen -> [a]
-disPress = disPress' dict
+disPress :: Hashable a => [a] -> Dictionary a -> StdGen -> [a]
+disPress k d = map (wordMap d M.!) . disPress' dict (map hash k) d
 
 -- | Helper for disPress and disPressBack; generates text forward or backward
 --   depending on if the first parameter is dict or dict2.
-disPress' :: Ord a
-          => (Dictionary a -> N.NGram a)
-          -> [a]
+disPress' :: (Dictionary a -> N.NGram)
+          -> [Int]
           -> Dictionary a
           -> StdGen
-          -> [a]
+          -> [Int]
 disPress' whatDict key@(w:ws) d gen =
   case word of
     Just (word', gen') ->
-      w : disPress' whatDict (optKey whatDict d gen $ ws++[word']) d gen'
+      w : disPress' whatDict optedKey d gen'
+      where
+        optedKey = optKey whatDict d gen $ ws++[word']
     _         ->
       w : disPress' whatDict ws d gen
   where
     word = do
-      possible <- N.lookup key (whatDict d)
+      possible <- N.lookup (map hash key) (whatDict d)
       if null possible
         then fail ""
         else return ()
@@ -168,8 +172,8 @@ pickOne items g = if null items'
 
 -- | Randomly chooses a key for the map. The key uses only a single word,
 --   so that it can be used properly for both forward and backward generation.
-randomKey :: (Ord a, Show a) => Dictionary a -> StdGen -> [a]
-randomKey dic gen = getKey (dict dic) gen
+randomKey :: Hashable a => Dictionary a -> StdGen -> [a]
+randomKey dic gen = map (wordMap dic M.!) $ getKey (dict dic) gen
   where
     getKey trie g =
       let elems        = N.childList trie
@@ -185,15 +189,16 @@ randomKey dic gen = getKey (dict dic) gen
 --   actually exists in the dictionary. The returned subset is obtained by
 --   randomly picking one of the valid subsets, weighted by inverse
 --   commonality, and with an extra bias towards less common keys.
-toKey :: (Show a, Ord a) => [a] -> Dictionary a -> StdGen -> [a]
+toKey :: Hashable a => [a] -> Dictionary a -> StdGen -> [a]
 toKey s d gen =
   if s `isKeyIn` d
      then s
      else if not $ null keys'
-             then fst $ pickOne keys' gen
+             then map (wordMap d M.!) $ fst $ pickOne keys' gen
              else []
   where
-    seqs = subsequences s
+    s' = map hash s
+    seqs = subsequences s'
     -- get avg. weights for all keys, filter out the nonexistent ones
     -- we also square the weights of the keys, to give less common keys an
     -- extra bias.
@@ -218,11 +223,13 @@ toKey s d gen =
 
 -- | Returns true if the given key is valid for the given dictionary; that is,
 --   if it points to something.
-isKeyIn :: Ord a => [a] -> Dictionary a -> Bool
-k `isKeyIn` d = case N.lookup k (dict d) of 
-  Nothing -> N.lookup k (dict2 d) /= Nothing
-  _       -> True
+isKeyIn :: Hashable a => [a] -> Dictionary a -> Bool
+k `isKeyIn` d = case N.lookup k' (dict d) of 
+    Nothing -> N.lookup k' (dict2 d) /= Nothing
+    _       -> True
+  where
+    k' = map hash k
 
 -- | Generates text using a randomly selected key
-randomPress :: (Show a, Ord a) => Dictionary a -> StdGen -> [a]
+randomPress :: Hashable a => Dictionary a -> StdGen -> [a]
 randomPress dic gen = disPress (randomKey dic gen) dic gen

@@ -8,37 +8,21 @@ import Data.Binary
 import Codec.Compression.Zlib
 import Data.ByteString.Lazy as B
 import Control.Exception (catch, SomeException)
+import Control.Applicative
 
-instance (Ord a, Binary a) => Binary (NGram a) where
+instance Binary NGram where
   put (NGram w c) = put w >> put c
   get   = get >>= \w -> get >>= \c -> return $! NGram w c
 
-instance (Ord a, Binary a) => Binary (Dictionary a) where
-  put = putD
-  get = getD
-
-putD :: (Ord a, Binary a) => Dictionary a -> Put
-putD d = do
-  put $ maxKeyLen d
-  put $ preferKeyLen d
-  put $ twoWay d
-  put $ dict d
-  put $ dict2 d
-
-getD :: (Ord a, Binary a) => Get (Dictionary a)
-getD = do
-  maxLen <- get
-  preferLen <- get
-  tw <- get
-  d1 <- get
-  d2 <- get
-  return $! Dictionary {
-      maxKeyLen    = maxLen,
-      preferKeyLen = preferLen,
-      twoWay       = tw,
-      dict         = d1,
-      dict2        = d2
-    }
+instance Binary a => Binary (Dictionary a) where
+  put d = do
+    put $ maxKeyLen d
+    put $ preferKeyLen d
+    put $ twoWay d
+    put $ dict d
+    put $ dict2 d
+    put $ wordMap d
+  get = Dictionary <$> get <*> get <*> get <*> get <*> get <*> get
 
 store :: (Ord a, Binary a) => FilePath -> Dictionary a -> IO ()
 store fp d =

@@ -2,7 +2,7 @@
 module DissociatedPress (
     Dictionary, Word,
     maxKeyLen, preferKeyLen, setPreferredKeyLength,
-    newDict, defDict, updateDict, toKey, optKey, merge,
+    newDict, defDict, updateDict, toKey, merge,
     disPress, disPressBack, randomPress, randomKey,
     randomSentence, ask, insertText,
     store, load,
