@@ -103,8 +103,9 @@ ask key dic g =
 
 -- | Updates a dictionary from a file; all words are lowercased.
 updateDictFromFile :: FilePath -> Dictionary Word -> IO (Dictionary Word)
-updateDictFromFile seed oldAssocs =
-  readFile seed >>= \str -> return $ insertText (T.pack str) oldAssocs
+updateDictFromFile seed oldAssocs = do
+  str <- readFile seed
+  return $ insertText (T.pack str) oldAssocs
 
 -- | Insert text into dictionary; all text is lowercased before insertion.
 insertText :: T.Text -> Dictionary Word -> Dictionary Word

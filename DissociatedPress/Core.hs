@@ -89,16 +89,21 @@ merge a b =
 updateDict :: Hashable a => [a] -> Dictionary a -> Dictionary a
 updateDict words d =
   d {
-      dict = N.insert (take (maxKeyLen d+1) hashes) (dict d),
+      dict = upd hashes (dict d),
       dict2 = if twoWay d
-                then N.insert (take (maxKeyLen d+1) hs) (dict2 d)
+                then upd hs (dict d)
                 else dict2 d,
-      wordMap = foldl' (\m (w,h) -> M.insert h w m) (wordMap d) (zip ws hs)
+      wordMap = foldl' (\m (w,h) -> M.insert h w m) (wordMap d) wordshashes
     }
   where
+    upd words@(_:ws) d = upd ws $! N.insert (take numwords words) d
+    upd _ d            = d
+
+    numwords = maxKeyLen d + 1
     hashes = map hash words
     ws = reverse words
     hs = reverse hashes
+    wordshashes = zip words hashes
 
 -- | Try to use the given key and random generator to derive a preferred length
 --   key for this dictionary. If the key's length is >= the preferred key
