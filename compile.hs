@@ -30,10 +30,7 @@ main = do
                          else ""
   BSL.interact $ compress
                . encode
-               . foldl' (flip updateDict) dict
-               . map T.words
-               . T.lines
-               . T.map toLower
+               . flip insertText dict
                . decodeUtf8
                . BSL.toStrict
   where

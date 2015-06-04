@@ -8,6 +8,7 @@ import qualified Data.Text as T
 import Data.Char (toLower)
 import System.Random
 import DissociatedPress.Core
+import Data.List (foldl')
 
 type Word = T.Text
 
@@ -109,4 +110,10 @@ updateDictFromFile seed oldAssocs = do
 
 -- | Insert text into dictionary; all text is lowercased before insertion.
 insertText :: T.Text -> Dictionary Word -> Dictionary Word
-insertText s d = updateDict (words' $ T.map toLower s) d
+insertText s d =
+    foldl' (\dict str -> updateDict (words' $ T.map toLower str) dict) d ls
+  where
+    ls = map addFullStop $ filter (not . T.null) $ T.lines s
+    addFullStop l
+      | T.last l `elem` ".!?" = l
+      | otherwise             = T.snoc l '.'
