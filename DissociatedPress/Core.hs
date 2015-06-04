@@ -91,7 +91,7 @@ updateDict words d =
   d {
       dict = upd hashes (dict d),
       dict2 = if twoWay d
-                then upd hs (dict d)
+                then upd hs (dict2 d)
                 else dict2 d,
       wordMap = foldl' (\m (w,h) -> M.insert h w m) (wordMap d) wordshashes
     }
