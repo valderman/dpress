@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 -- | Less general functions for working with textual data.
 module DissociatedPress.Text (
     Word,
@@ -9,6 +9,9 @@ import Data.Char (toLower)
 import System.Random
 import DissociatedPress.Core
 import Data.List (foldl')
+#if __GLASGOW_HASKELL__ > 708
+import Prelude hiding (Word)
+#endif
 
 type Word = T.Text
 
@@ -115,5 +118,5 @@ insertText s d =
   where
     ls = map addFullStop $ filter (not . T.null) $ T.lines s
     addFullStop l
-      | T.last l `elem` ".!?" = l
-      | otherwise             = T.snoc l '.'
+      | T.last l `elem` (".!?" :: String) = l
+      | otherwise                         = T.snoc l '.'
