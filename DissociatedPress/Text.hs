@@ -89,10 +89,17 @@ ask key dic g =
     -- from important words
     nopunctuation =
       filter (\x -> not $ isElem (T.head x) punctuation) lowercaseKey
+
+    -- build the key forward or backward?
+    (fwdkey, g') = random g
+    gen k d
+      | fwdkey    = disPress k d
+      | otherwise = reverse . disPressBack k d
     
     -- to generate the actual key, word split the given key then let the key
     -- generator do its magic.
-    key' = toKey nopunctuation dic g
+    order = maxKeyLen dic
+    key' = take order $ gen (toKey nopunctuation dic g') dic g'
     
     -- generate forward from key
     forward  = takeUntil (flip isElem ".!?" . T.head) $ disPress key' dic g
