@@ -99,7 +99,7 @@ ask key dic g =
     -- to generate the actual key, word split the given key then let the key
     -- generator do its magic.
     order = maxKeyLen dic
-    key' = take order $ gen (toKey nopunctuation dic g') dic g'
+    key' = gen (toKey nopunctuation dic g') dic g'
     
     -- generate forward from key
     forward  = takeUntil (flip isElem ".!?" . T.head) $ disPress key' dic g
